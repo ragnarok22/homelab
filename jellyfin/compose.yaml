@@ -4,16 +4,20 @@ services:
     container_name: jellyfin
     restart: unless-stopped
     user: 1000:1000
+    network_mode: 'host'
     volumes:
       - ./config:/config
       - ./cache:/cache
-      - /home/Data/TV_Shows:/tv_shows
-      - /home/Data/Films:/films
-      - /home/Data/Documentaries:/documentaries
+      - type: bind
+        source: /home/Data  # TODO: change it
+        target: /myMedia
+    # Optional - alternative address used for autodiscovery
     environment:
-      - JELLYFIN_PublishedServerUrl=${FQDN}
-    ports:
-      - 8096:8096
+      - JELLYFIN_PublishedServerUrl=${JELLYFIN_URL}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    # ports:
+    #   - 8096:8096
     networks:
       - homelab
 

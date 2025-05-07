@@ -1,0 +1,9 @@
+  homeassistant:
+    image: homeassistant/home-assistant:stable
+    container_name: homeassistant
+    volumes:
+      - /run/dbus:/run/dbus:ro
+      - ./config:/config
+    restart: unless-stopped
+    privileged: true
+    network_mode: host

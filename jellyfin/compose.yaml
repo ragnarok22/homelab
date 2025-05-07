@@ -1,0 +1,22 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    restart: unless-stopped
+    user: 1000:1000
+    volumes:
+      - ./config:/config
+      - ./cache:/cache
+      - /home/Data/TV_Shows:/tv_shows
+      - /home/Data/Films:/films
+      - /home/Data/Documentaries:/documentaries
+    environment:
+      - JELLYFIN_PublishedServerUrl=${FQDN}
+    ports:
+      - 8096:8096
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true

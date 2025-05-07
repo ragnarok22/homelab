@@ -8,12 +8,12 @@ services:
       - TZ=Etc/UTC
     volumes:
       - ./config:/config
-    ports:
-      - 9696:9696
+    # ports:
+    #   - 9696:9696
     restart: unless-stopped
     networks:
-      - proxy
+      - homelab
 
 networks:
-  proxy:
+  homelab:
     external: true

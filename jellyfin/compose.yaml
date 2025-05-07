@@ -15,8 +15,8 @@ services:
     ports:
       - 8096:8096
     networks:
-      - proxy
+      - homelab
 
 networks:
-  proxy:
+  homelab:
     external: true

@@ -12,7 +12,7 @@ services:
     environment:
       TZ: 'America/Paramaribo'
       VIRTUAL_HOST: pihole
-      CORS_HOSTS: 'palmiche.duckdns.org'
+      CORS_HOSTS: 'ragnarokreinier.network'
       # INTERFACE: wlan0
       # WEBPASSWORD: 'set a secure password here or it will be random'
     # Volumes store your data between container upgrades
@@ -24,8 +24,8 @@ services:
     #   - NET_ADMIN # Required if you are using Pi-hole as your DHCP server, else not needed
     restart: unless-stopped
     networks:
-      - proxy
+      - homelab
 
 networks:
-  proxy:
+  homelab:
     external: true

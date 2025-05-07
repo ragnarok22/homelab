@@ -1,7 +1,7 @@
 services:
   app:
     image: 'jc21/nginx-proxy-manager:latest'
-    container_name: nginxproxymanager
+    container_name: nginxmanager
     restart: unless-stopped
     ports:
       - '80:80'
@@ -11,8 +11,8 @@ services:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
     networks:
-      - proxy
+      - homelab
 
 networks:
-  proxy:
+  homelab:
     external: true

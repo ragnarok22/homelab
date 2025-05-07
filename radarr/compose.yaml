@@ -14,8 +14,8 @@ services:
       - 7878:7878
     restart: unless-stopped
     networks:
-      - proxy
+      - homelab
 
 networks:
-  proxy:
+  homelab:
     external: true

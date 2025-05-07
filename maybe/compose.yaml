@@ -47,6 +47,7 @@ x-rails-env: &rails_env
 services:
   web:
     image: ghcr.io/maybe-finance/maybe:latest
+    container_name: maybe
     volumes:
       - app-storage:/rails/storage
     # ports:

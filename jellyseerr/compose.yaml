@@ -1,0 +1,20 @@
+services:
+  jellyseerr:
+    image: ghcr.io/fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - LOG_LEVEL=warning
+      - TZ=America/Paramaribo  # TODO: change it
+      - PORT=5055  # Optional
+    # ports:
+    #   - 5055:5055
+    volumes:
+      - ./config:/app/config
+    restart: unless-stopped
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true
+

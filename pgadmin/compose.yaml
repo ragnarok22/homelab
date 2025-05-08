@@ -1,0 +1,16 @@
+services:
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    ports:
+      - 8888:80
+    environment:
+      .env
+
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    shm_size: 128mb
+    environment:
+      .env
+

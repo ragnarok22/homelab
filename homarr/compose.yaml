@@ -6,10 +6,10 @@ services:
     volumes:
       - ./homarr/appdata:/appdata
       - /var/run/docker.sock:/var/run/docker.sock # Optional, only if you want docker integration
-    environment:
-      - .env
+    env_file:
+      - path: .env
     # ports:
-    #   - '7575:7575'
+    #   - 7575:7575
     networks:
       - homelab
 

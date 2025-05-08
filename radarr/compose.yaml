@@ -10,8 +10,8 @@ services:
       - ./config:/config
       - /home/Data/Downloads:/home/Data/Downloads #optional
       - /home/Data/Films:/home/Data/Films #optional
-    ports:
-      - 7878:7878
+    # ports:
+    #   - 7878:7878
     restart: unless-stopped
     networks:
       - homelab

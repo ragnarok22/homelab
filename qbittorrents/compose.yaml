@@ -6,13 +6,13 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/Paramaribo  # TODO: change it
-      - WEBUI_PORT=8080
+      - WEBUI_PORT=443  # Due to iues with CSRF, set 80 for http and 443 for certificates
       - TORRENTING_PORT=6881
     volumes:
       - ./config:/config
       - /home/Data/Downloads:/home/Data/Downloads
     # ports:
-    #   - 8080:8080
+    #   - 443:443
     #   - 6881:6881
     #   - 6881:6881/udp
     restart: unless-stopped

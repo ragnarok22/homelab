@@ -4,7 +4,6 @@ services:
     container_name: jellyfin
     restart: unless-stopped
     user: 1000:1000
-    network_mode: 'host'
     volumes:
       - ./config:/config
       - ./cache:/cache
@@ -12,7 +11,6 @@ services:
         source: /home/Data  # TODO: change it
         target: /myMedia
     # Optional - alternative address used for autodiscovery
-    environment:
     env_file:
       - path: .env
         required: true

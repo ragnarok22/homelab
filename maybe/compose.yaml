@@ -28,6 +28,8 @@ services:
     env_file:
       - path: ../.env
         required: true
+    networks:
+      - homelab
 
   redis:
     image: redis:latest
@@ -41,6 +43,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - homelab
 
 volumes:
   app-storage:

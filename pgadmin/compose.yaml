@@ -8,6 +8,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - homelab
     # ports:
     #   - 8888:80
 
@@ -27,7 +29,12 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - homelab
 
+networks:
+  homelab:
+    external: true
 
 volumes:
   postgres-data:

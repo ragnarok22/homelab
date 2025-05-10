@@ -25,10 +25,12 @@ services:
       # - ./config/etc/dnsmasq.d:/etc/dnsmasq.d
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
-    # cap_add:
+    cap_add:
       # See https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
       # Required if you are using Pi-hole as your DHCP server, else not needed
-      # - NET_ADMIN
+      - NET_ADMIN
+      - SYS_TIME
+      - SYS_NICE
     restart: unless-stopped
     # networks:
     #   - homelab

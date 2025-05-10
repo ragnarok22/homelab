@@ -3,17 +3,17 @@ services:
     image: pihole/pihole
     container_name: pihole
     # For DHCP it is recommended to remove these ports and instead add: network_mode: "host"
-    ports:
+    # ports:
       # DNS ports
-      - "53:53/tcp"
-      - "53:53/udp"
+      # - "53:53/tcp"
+      # - "53:53/udp"
       # Default HTTP Port
-      - "8810:80/tcp"
+      # - "8810:80/tcp"
       # Default HTTPs Port. FTL will generate a self-signed certificate
       # - "443:443/tcp"
       # Uncomment the below if using Pi-hole as your DHCP Server
       # - "67:67/udp"
-    # network_mode: "host"
+    network_mode: "host"
     env_file:
       - path: .env
         required: true
@@ -30,9 +30,9 @@ services:
       # Required if you are using Pi-hole as your DHCP server, else not needed
       # - NET_ADMIN
     restart: unless-stopped
-    networks:
-      - homelab
+    # networks:
+    #   - homelab
 
-networks:
-  homelab:
-    external: true
+# networks:
+#   homelab:
+#     external: true

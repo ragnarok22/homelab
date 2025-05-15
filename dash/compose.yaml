@@ -5,9 +5,11 @@ services:
     restart: unless-stopped
     privileged: true
     environment:
-      - DASHDOT_PAGE_TILE=Testing
+      - DASHDOT_PAGE_TITLE=Dash | HomeLab
       - DASHDOT_SHOW_DASH_VERSION=icon_hover
       - DASHDOT_ALWAYS_SHOW_PERCENTAGES=true
+      - DASHDOT_CUSTOM_HOST=dash.ragnarokreinier.network
+      - DASHDOT_ENABLE_CPU_TEMPS=true
     # ports:
     #   - 3001:3001
     volumes:

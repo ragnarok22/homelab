@@ -4,6 +4,10 @@ services:
     container_name: dash
     restart: unless-stopped
     privileged: true
+    environment:
+      - DASHDOT_PAGE_TILE=Testing
+      - DASHDOT_SHOW_DASH_VERSION=icon_hover
+      - DASHDOT_ALWAYS_SHOW_PERCENTAGES=true
     # ports:
     #   - 3001:3001
     volumes:

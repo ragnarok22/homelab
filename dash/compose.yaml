@@ -1,0 +1,16 @@
+services:
+  dash:
+    image: mauricenino/dashdot:latest
+    container_name: dash
+    restart: unless-stopped
+    privileged: true
+    # ports:
+    #   - 3001:3001
+    volumes:
+      - /:/mnt/host:ro
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

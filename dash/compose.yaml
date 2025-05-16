@@ -11,6 +11,7 @@ services:
       - DASHDOT_CUSTOM_HOST=dash.ragnarokreinier.network
       - DASHDOT_ENABLE_CPU_TEMPS=true
       - DASHDOT_SHOW_HOST=true
+      - DASHDOT_ACCEPT_OOKLA_EULA=true
     # ports:
     #   - 3001:3001
     volumes:

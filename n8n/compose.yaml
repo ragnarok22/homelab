@@ -18,6 +18,12 @@ services:
       - GENERIC_TIMEZONE
     volumes:
       - n8n_data:/home/node/.n8n
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true
 
 volumes:
   n8n_data:

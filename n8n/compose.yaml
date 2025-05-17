@@ -13,9 +13,9 @@ services:
       - DB_POSTGRESDB_HOST=postgres
       - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_USER=${POSTGRES_USER}
-      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
-      - GENERIC_TIMEZONE=${TZ}
+      - DB_POSTGRESDB_USER
+      - DB_POSTGRESDB_PASSWORD
+      - GENERIC_TIMEZONE
     volumes:
       - n8n_data:/home/node/.n8n
 

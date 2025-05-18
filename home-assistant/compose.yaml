@@ -12,7 +12,7 @@ services:
       - homelab
 
   adb:
-    image: sorlien/adb
+    image: sorccu/adb
     container_name: adb
     network_mode: host
     env_file:

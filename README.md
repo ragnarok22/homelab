@@ -1,9 +1,13 @@
 # homelab
 
+My home lab.
+
 ## Services
 
-- [Watchtower](https://github.com/containrrr/watchtower) - Automatically updates running Docker containers to the latest available image.
-- [Pi-hole](https://pi-hole.net/) - Network-wide ad blocking DNS server that improves network performance by blocking ads before they download.
+- [Watchtower](https://github.com/containrrr/watchtower) - Automatically updates
+running Docker containers to the latest available image.
+- [Pi-hole](https://pi-hole.net/) - Network-wide ad blocking DNS server that
+improves network performance by blocking ads before they download.
 - [Home Assistant](https://www.home-assistant.io/) - Open source home automation platform that puts local control and privacy first.
 - [Jellyfin](https://jellyfin.org/) - Free Software Media System that puts you in control of managing and streaming your media.
 - [Jellyseerr](https://github.com/Fallenbagel/jellyseerr) - Request management and media discovery tool for Jellyfin.

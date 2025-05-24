@@ -12,7 +12,7 @@ services:
         target: /myMedia
     # Optional - alternative address used for autodiscovery
     env_file:
-      - path: .env
+      - path: ../.env
         required: true
     extra_hosts:
       - 'host.docker.internal:host-gateway'

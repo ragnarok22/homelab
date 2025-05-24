@@ -28,6 +28,8 @@ services:
     env_file:
       - path: ../.env
         required: true
+    ports:
+      - 465:465  # SMTP port
     networks:
       - homelab
 

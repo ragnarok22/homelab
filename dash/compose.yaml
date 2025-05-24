@@ -12,6 +12,7 @@ services:
       - DASHDOT_ENABLE_CPU_TEMPS=true
       - DASHDOT_SHOW_HOST=true
       - DASHDOT_ACCEPT_OOKLA_EULA=true
+      - DASHDOT_USER_NETWORK_INTERFACE=wlp2s0
     # ports:
     #   - 3001:3001
     volumes:

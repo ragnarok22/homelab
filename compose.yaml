@@ -1,0 +1,30 @@
+# Compose root
+#
+# This is the root of the Compose file. It is used to include other Compose files.
+#
+# Run the entire stack:
+#   docker compose up
+#
+# Or just run one service:
+#   docker compose -f pihole/compose.yaml up
+
+include:
+  - path:
+    - pgadmin/compose.yaml
+    - nginx-manager/compose.yaml
+    - pihole/compose.yaml
+    - dash/compose.yaml
+    - homarr/compose.yaml
+    - excalidraw/compose.yaml
+    - home-assistant/compose.yaml
+    - immich/compose.yaml
+    - jellyfin/compose.yaml
+    - jellyseerr/compose.yaml
+    - maybe/compose.yaml
+    - n8n/compose.yaml
+    - qbittorrents/compose.yaml
+    - prowlarr/compose.yaml
+    - radarr/compose.yaml
+    - readarr/compose.yaml
+    - sonarr/compose.yaml
+    - watchtower/compose.yaml

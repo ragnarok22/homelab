@@ -4,6 +4,8 @@ My home lab.
 
 ## Services
 
+This is a list of services I run on my home lab.
+
 - [Watchtower](https://github.com/containrrr/watchtower) - Automatically updates
 running Docker containers to the latest available image.
 - [Pi-hole](https://pi-hole.net/) - Network-wide ad blocking DNS server that
@@ -22,3 +24,8 @@ improves network performance by blocking ads before they download.
 - [Radarr](https://radarr.video/) - Movie collection manager that works with various download clients.
 - [Readarr](https://readarr.com/) - Book collection manager and automation tool.
 - [Sonarr](https://sonarr.tv/) - TV series management and automation tool.
+
+## Running
+
+Run `docker compose up -d` to start all the services or just run
+`docker compose -f pihole/compose.yml up -d` to only run the Pi-hole service.

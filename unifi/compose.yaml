@@ -13,6 +13,8 @@ services:
       - unifi-db:/data/db
       - ./init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
     restart: unless-stopped
+    networks:
+      - homelab
 
   unifi-network-application:
     image: lscr.io/linuxserver/unifi-network-application:latest
@@ -36,13 +38,19 @@ services:
       - 8443:8443
       - 3478:3478/udp
       - 10001:10001/udp
-      - 8080:8080
+      - 8081:8080
       - 1900:1900/udp #optional
       - 8843:8843 #optional
       - 8880:8880 #optional
       - 6789:6789 #optional
       - 5514:5514/udp #optional
     restart: unless-stopped
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true
 
 volumes:
   unifi-db:

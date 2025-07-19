@@ -5,6 +5,7 @@ services:
     user: 1000:1000
     environment:
       - TZ=America/Paramaribo
+      - EXTENSION_REPOS=["https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json"]
       # - FLARESOLVERR_ENABLED=true
       # - FLARESOLVERR_URL=http://flaresolverr:8191
 #  #################################################################################################

@@ -1,7 +1,8 @@
 services:
   suwayomi:
     image: ghcr.io/suwayomi/suwayomi-server:preview
-    # user: 1000:1000
+    container_name: suwayomi
+    user: 1000:1000
     environment:
       - TZ=America/Paramaribo
       # - FLARESOLVERR_ENABLED=true

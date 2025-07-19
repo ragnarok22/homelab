@@ -1,6 +1,6 @@
 services:
   suwayomi:
-    image: ghcr.io/suwayomi/suwayomi-server:preview
+    image: ghcr.io/suwayomi/suwayomi-server:stable
     container_name: suwayomi
     user: 1000:1000
     environment:
@@ -21,6 +21,7 @@ services:
 #
 #  #################################################################################################
     volumes:
+      - ./downloads:/home/suwayomi/.local/share/Tachidesk/downloads
       - ./data:/home/suwayomi/.local/share/Tachidesk
     # ports:
     #   - "4567:4567"

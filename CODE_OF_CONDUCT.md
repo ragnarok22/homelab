@@ -28,7 +28,7 @@ This Code applies within all project spaces and when an individual is officially
 
 ## Enforcement
 Report unacceptable behavior to the maintainers:
-- Preferred: email <REPLACE_WITH_CONTACT_EMAIL>
+- Preferred: email me@reinierhernandez.com
 - Or open an issue labeled `coc` (omit sensitive details; maintainers will follow up privately)
 
 All complaints will be reviewed promptly and fairly. The maintainers will respect the reporter’s privacy and handle reports confidentially to the extent possible.
@@ -57,4 +57,4 @@ This Code of Conduct is adapted from the [Contributor Covenant](https://www.cont
 - See the FAQ at https://www.contributor-covenant.org/faq
 - Translations at https://www.contributor-covenant.org/translations
 
-Replace <REPLACE_WITH_CONTACT_EMAIL> with a monitored address for private reports.
+Replace me@reinierhernandez.com with a monitored address for private reports.

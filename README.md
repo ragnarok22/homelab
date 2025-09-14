@@ -81,6 +81,7 @@ docker network create homelab
 ## 🤝 Contributing
 
 - Read the contribution guide: see `CONTRIBUTING.md`.
+- Repository guidelines for structure and workflow: see `AGENTS.md`.
 - Use Conventional Commits in titles and messages (e.g., `feat(compose): add suwayomi service`).
 - Follow the PR template; include validation steps and screenshots when relevant.
 - For service additions, include `service-name/compose.yaml`, `service-name/example.env`, and update the root `compose.yaml` include list.

@@ -5,9 +5,9 @@ services:
     env_file:
       - path: .env
         required: true
-    # depends_on:
-    #   postgres:
-    #     condition: service_healthy
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - homelab
     # ports:

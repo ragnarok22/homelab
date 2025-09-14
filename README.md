@@ -1,31 +1,79 @@
-# homelab
+# Homelab
 
-My home lab.
+A collection of self-hosted services running in Docker containers for my home lab setup.
 
-## Services
+## 📋 Services
 
-This is a list of services I run on my home lab.
+### 🏠 Core Infrastructure
+- **[Pi-hole](https://pi-hole.net/)** - Network-wide ad blocking DNS server that improves network performance by blocking ads before they download
+- **[Nginx Proxy Manager](https://github.com/nginx-proxy/nginx-proxy)** - Automated nginx proxy for Docker containers with SSL certificate management
+- **[Watchtower](https://github.com/containrrr/watchtower)** - Automatically updates running Docker containers to the latest available image
 
-- [Watchtower](https://github.com/containrrr/watchtower) - Automatically updates
-running Docker containers to the latest available image.
-- [Pi-hole](https://pi-hole.net/) - Network-wide ad blocking DNS server that
-improves network performance by blocking ads before they download.
-- [Home Assistant](https://www.home-assistant.io/) - Open source home automation platform that puts local control and privacy first.
-- [Jellyfin](https://jellyfin.org/) - Free Software Media System that puts you in control of managing and streaming your media.
-- [Jellyseerr](https://github.com/Fallenbagel/jellyseerr) - Request management and media discovery tool for Jellyfin.
-- [Homarr](https://homarr.dev/) - Customizable browser's home page to organize your self-hosted services.
-- [Dash](https://github.com/MauriceNino/dashdot) - A simple, modern server dashboard for monitoring system performance.
-- [Excalidraw](https://excalidraw.com/) - Virtual whiteboard for sketching hand-drawn like diagrams.
-- [n8n](https://n8n.io/) - Workflow automation tool with a focus on providing a self-hosted alternative to Zapier.
-- [Nginx Manager](https://github.com/nginx-proxy/nginx-proxy) - Automated nginx proxy for Docker containers.
-- [pgAdmin](https://www.pgadmin.org/) - Management tool for PostgreSQL databases.
-- [Prowlarr](https://github.com/Prowlarr/Prowlarr) - Indexer manager/proxy for various download clients.
-- [qBittorrent](https://www.qbittorrent.org/) - Free and open-source BitTorrent client.
-- [Radarr](https://radarr.video/) - Movie collection manager that works with various download clients.
-- [Readarr](https://readarr.com/) - Book collection manager and automation tool.
-- [Sonarr](https://sonarr.tv/) - TV series management and automation tool.
+### 📊 Monitoring & Management
+- **[Homarr](https://homarr.dev/)** - Customizable browser's home page to organize your self-hosted services
+- **[Dash](https://github.com/MauriceNino/dashdot)** - A simple, modern server dashboard for monitoring system performance
+- **[pgAdmin](https://www.pgadmin.org/)** - Management tool for PostgreSQL databases
+- **[Unifi Network Application](https://ui.com/)** - Enterprise network management platform for Unifi devices
 
-## Running
+### 🎬 Media Management
+- **[Jellyfin](https://jellyfin.org/)** - Free Software Media System that puts you in control of managing and streaming your media
+- **[Jellyseerr](https://github.com/Fallenbagel/jellyseerr)** - Request management and media discovery tool for Jellyfin
+- **[Radarr](https://radarr.video/)** - Movie collection manager that works with various download clients
+- **[Sonarr](https://sonarr.tv/)** - TV series management and automation tool
+- **[Readarr](https://readarr.com/)** - Book collection manager and automation tool
+- **[Prowlarr](https://github.com/Prowlarr/Prowlarr)** - Indexer manager/proxy for various download clients
+- **[qBittorrent](https://www.qbittorrent.org/)** - Free and open-source BitTorrent client
+- **[Suwayomi](https://github.com/Suwayomi/Suwayomi-Server)** - Free and open source manga reader server that runs extensions
 
-Run `docker compose up -d` to start all the services or just run
-`docker compose -f pihole/compose.yml up -d` to only run the Pi-hole service.
+### 📸 Photo & File Management
+- **[Immich](https://immich.app/)** - High performance self-hosted photo and video management solution
+
+### 🏠 Home Automation
+- **[Home Assistant](https://www.home-assistant.io/)** - Open source home automation platform that puts local control and privacy first
+
+### 💰 Finance & Personal Tools
+- **[Maybe](https://github.com/maybe-finance/maybe)** - Personal finance and wealth management application
+
+### 🔧 Productivity & Automation
+- **[n8n](https://n8n.io/)** - Workflow automation tool with a focus on providing a self-hosted alternative to Zapier
+- **[Excalidraw](https://excalidraw.com/)** - Virtual whiteboard for sketching hand-drawn like diagrams
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Docker and Docker Compose installed
+- A `.env` file configured with required environment variables (see `example.env`)
+
+### Running Services
+
+#### Start All Services
+```bash
+docker compose up -d
+```
+
+#### Start Individual Services
+Run a specific service using its compose file:
+```bash
+docker compose -f pihole/compose.yaml up -d
+docker compose -f jellyfin/compose.yaml up -d
+# ... etc
+```
+
+#### Stop All Services
+```bash
+docker compose down
+```
+
+## 🌐 Network Configuration
+
+All services are configured to use an external Docker network called `homelab`. Create it with:
+```bash
+docker network create homelab
+```
+
+## ⚙️ Configuration
+
+1. Copy `example.env` to `.env` and configure the required variables
+2. Each service has its own directory with service-specific configuration
+3. Most services use volume mounts for persistent data storage
+4. Web interfaces are typically exposed through the nginx proxy manager

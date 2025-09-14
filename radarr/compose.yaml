@@ -2,10 +2,9 @@ services:
   radarr:
     image: lscr.io/linuxserver/radarr:latest
     container_name: radarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Paramaribo
+    env_file:
+      - path: .env
+        required: true
     volumes:
       - ./config:/config
       - /home/Data:/home/Data # optional

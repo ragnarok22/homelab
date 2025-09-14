@@ -2,10 +2,9 @@ services:
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Paramaribo  # TODO: change it
+    env_file:
+      - path: .env
+        required: true
     volumes:
       - ./config:/config
     # ports:

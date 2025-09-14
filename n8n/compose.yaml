@@ -6,7 +6,7 @@ services:
     # ports:
     #   - 5678:5678
     env_file:
-      - path: ../.env
+      - path: .env
         required: true
     environment:
       - DB_TYPE=postgresdb

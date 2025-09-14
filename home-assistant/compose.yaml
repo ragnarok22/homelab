@@ -16,7 +16,7 @@ services:
     container_name: adb
     network_mode: host
     env_file:
-      - path: ../.env
+      - path: .env
         required: true
 
 networks:

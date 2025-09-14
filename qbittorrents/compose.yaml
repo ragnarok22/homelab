@@ -2,13 +2,9 @@ services:
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
-    environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/Paramaribo  # TODO: change it
-      # reverse proxy can throw a unauthorizated error. Fix: https://discourse.linuxserver.io/t/opening-qbittorrent-webui-via-dashboard-app-is-unauthorized-mismatched-ips/7363/7
-      - WEBUI_PORT=443  # Due to iues with CSRF, set 80 for http and 443 for certificates
-      - TORRENTING_PORT=6881
+    env_file:
+      - path: .env
+        required: true
     volumes:
       - ./config:/config
       - /home/Data/Downloads:/home/Data/Downloads

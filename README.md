@@ -77,3 +77,16 @@ docker network create homelab
 2. Each service has its own directory with service-specific configuration
 3. Most services use volume mounts for persistent data storage
 4. Web interfaces are typically exposed through the nginx proxy manager
+
+## 🤝 Contributing
+
+- Read the contribution guide: see `CONTRIBUTING.md`.
+- Use Conventional Commits in titles and messages (e.g., `feat(compose): add suwayomi service`).
+- Follow the PR template; include validation steps and screenshots when relevant.
+- For service additions, include `service-name/compose.yaml`, `service-name/example.env`, and update the root `compose.yaml` include list.
+
+## 🫱🏻‍🫲🏽 Community & Conduct
+
+- This project follows a Code of Conduct: see `CODE_OF_CONDUCT.md`.
+- Report concerns privately via the contact in the Code of Conduct.
+- Open issues using the provided templates (bug report or feature request) to help maintainers triage quickly.

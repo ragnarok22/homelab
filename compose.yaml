@@ -27,4 +27,5 @@ include:
     - radarr/compose.yaml
     - readarr/compose.yaml
     - sonarr/compose.yaml
+    - suwayomi/compose.yaml
     - watchtower/compose.yaml

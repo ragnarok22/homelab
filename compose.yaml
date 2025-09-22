@@ -17,10 +17,10 @@ include:
     - homarr/compose.yaml
     - excalidraw/compose.yaml
     - home-assistant/compose.yaml
-    # - immich/compose.yaml # (deprecated)
+    - immich/compose.yaml
     - jellyfin/compose.yaml
     - jellyseerr/compose.yaml
-    - maybe/compose.yaml
+    # - maybe/compose.yaml  # (deprecated)
     - n8n/compose.yaml
     - qbittorrents/compose.yaml
     - prowlarr/compose.yaml

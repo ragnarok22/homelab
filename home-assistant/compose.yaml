@@ -3,6 +3,9 @@ services:
     image: ghcr.io/home-assistant/home-assistant:stable
     container_name: homeassistant
     network_mode: host
+    env_file:
+      - path: .env
+        required: true
     volumes:
       - ./config:/config
       - /run/dbus:/run/dbus:ro
@@ -21,3 +24,15 @@ services:
     volumes:
       - ./adb-keys:/root/.android
     restart: unless-stopped
+
+  esphome:
+    image: ghcr.io/esphome/esphome:latest
+    container_name: esphome
+    network_mode: host
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./esphome:/config
+    restart: unless-stopped
+    privileged: true

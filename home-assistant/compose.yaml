@@ -2,23 +2,22 @@ services:
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant:stable
     container_name: homeassistant
+    network_mode: host
     volumes:
       - ./config:/config
-      - /etc/localtime:/etc/localtime:ro
       - /run/dbus:/run/dbus:ro
+    devices:
+      # Bluetooth
+      - /dev/bus/usb:/dev/bus/usb
     restart: unless-stopped
-    privileged: true
-    networks:
-      - homelab
 
   adb:
-    image: sorccu/adb
+    image: devicefarmer/adb:latest
     container_name: adb
     network_mode: host
     env_file:
       - path: .env
         required: true
-
-networks:
-  homelab:
-    external: true
+    volumes:
+      - ./adb-keys:/root/.android
+    restart: unless-stopped

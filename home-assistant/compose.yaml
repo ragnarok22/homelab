@@ -8,9 +8,8 @@ services:
         required: true
     volumes:
       - ./config:/config
-      - /run/dbus:/run/dbus:ro
-    devices:
       # Bluetooth
+      - /run/dbus:/run/dbus:ro
       - /dev/bus/usb:/dev/bus/usb
     restart: unless-stopped
 

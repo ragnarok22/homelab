@@ -12,6 +12,7 @@ services:
       - /run/dbus:/run/dbus:ro
       - /dev/bus/usb:/dev/bus/usb
     restart: unless-stopped
+    privileged: true
 
   adb:
     image: devicefarmer/adb:latest

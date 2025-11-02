@@ -48,6 +48,7 @@ services:
         required: true
     volumes:
       - ./influxdb:/var/lib/influxdb
+      - ./influxdb2:/var/lib/influxdb2
     restart: unless-stopped
 
   grafana:

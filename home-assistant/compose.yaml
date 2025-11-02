@@ -68,7 +68,7 @@ services:
       - ./grafana:/var/lib/grafana
     restart: unless-stopped
 
-    telegraf:
+  telegraf:
     image: telegraf:latest
     container_name: telegraf
     hostname: ${HOSTNAME}

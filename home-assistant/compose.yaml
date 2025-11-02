@@ -67,3 +67,23 @@ services:
     volumes:
       - ./grafana:/var/lib/grafana
     restart: unless-stopped
+
+    telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    hostname: ${HOSTNAME}
+    network_mode: host
+    cap_add:
+      - NET_RAW
+    environment:
+      - HOST_PROC=/host/proc
+      - HOST_SYS=/host/sys
+      - HOST_ETC=/host/etc
+    volumes:
+      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /etc:/host/etc:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+

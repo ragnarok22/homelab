@@ -36,3 +36,4 @@ services:
       - ./esphome:/config
     restart: unless-stopped
     privileged: true
+    init: true

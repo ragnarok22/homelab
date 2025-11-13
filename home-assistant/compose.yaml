@@ -76,7 +76,6 @@ services:
     network_mode: host
     cap_add:
       - NET_RAW
-    user: "0:0"
     environment:
       - HOST_PROC=/host/proc
       - HOST_SYS=/host/sys

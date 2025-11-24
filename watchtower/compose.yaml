@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     environment:
       - WATCHTOWER_CLEANUP=true  # Removes old images after updating.
+      - WATCHTOWER_REMOVE_VOLUMES=true  # Removes anonymous volumes after updating.
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /etc/localtime:/etc/localtime:ro

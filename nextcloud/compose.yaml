@@ -1,0 +1,19 @@
+services:
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud:latest
+    container_name: nextcloud
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./config:/config
+      - ./data:/data
+    # ports:
+    #   - "8080:443"
+    restart: unless-stopped
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

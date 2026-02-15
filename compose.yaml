@@ -22,10 +22,12 @@ include:
     - jellyseerr/compose.yaml
     # - maybe/compose.yaml  # (deprecated)
     - n8n/compose.yaml
+    - nextcloud/compose.yaml
     - qbittorrents/compose.yaml
     - prowlarr/compose.yaml
     - radarr/compose.yaml
     - readarr/compose.yaml
     - sonarr/compose.yaml
     - suwayomi/compose.yaml
+    # - unifi/compose.yaml  # (deprecated)
     - watchtower/compose.yaml

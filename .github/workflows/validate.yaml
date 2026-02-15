@@ -1,0 +1,71 @@
+name: Validate Compose
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy example.env to .env for each service
+        run: |
+          for env_file in */example.env; do
+            dir=$(dirname "$env_file")
+            cp "$env_file" "$dir/.env"
+          done
+
+      - name: Validate individual service compose files
+        run: |
+          failed=0
+          for file in */compose.yaml; do
+            service=$(dirname "$file")
+            if docker compose -f "$file" config > /dev/null 2>&1; then
+              echo "✓ $service"
+            else
+              echo "✗ $service"
+              docker compose -f "$file" config 2>&1 || true
+              failed=1
+            fi
+          done
+          if [ "$failed" -eq 1 ]; then
+            exit 1
+          fi
+
+      - name: Check all services are included in root compose.yaml
+        run: |
+          failed=0
+          for file in */compose.yaml; do
+            service=$(dirname "$file")
+            # Match both active and commented-out (deprecated) entries
+            if ! grep -q "${service}/compose\.yaml" compose.yaml; then
+              echo "✗ $service/compose.yaml is not referenced in root compose.yaml"
+              failed=1
+            else
+              echo "✓ $service"
+            fi
+          done
+          if [ "$failed" -eq 1 ]; then
+            exit 1
+          fi
+
+      - name: Check all services have an example.env
+        run: |
+          failed=0
+          for file in */compose.yaml; do
+            service=$(dirname "$file")
+            if [ ! -f "$service/example.env" ]; then
+              echo "✗ $service is missing example.env"
+              failed=1
+            else
+              echo "✓ $service"
+            fi
+          done
+          if [ "$failed" -eq 1 ]; then
+            exit 1
+          fi

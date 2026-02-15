@@ -1,3 +1,8 @@
+# After first start, edit config/www/nextcloud/config/config.php to add:
+#   'trusted_domains'  => ['localhost', 'nextcloud.reinier.casa'],
+#   'trusted_proxies'  => ['172.16.0.0/12'],
+#   'overwriteprotocol' => 'https',
+#   'overwrite.cli.url' => 'https://nextcloud.reinier.casa',
 services:
   nextcloud:
     image: lscr.io/linuxserver/nextcloud:latest

@@ -1,5 +1,9 @@
 # Homelab
 
+[![Validate Compose](https://github.com/ragnarok22/homelab/actions/workflows/validate.yaml/badge.svg)](https://github.com/ragnarok22/homelab/actions/workflows/validate.yaml)
+[![License](https://img.shields.io/github/license/ragnarok22/homelab)](https://github.com/ragnarok22/homelab/blob/main/LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/ragnarok22/homelab)](https://github.com/ragnarok22/homelab/commits/main)
+
 A collection of self-hosted services running in Docker containers for my home lab setup.
 
 ## 📋 Services

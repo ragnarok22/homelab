@@ -32,6 +32,12 @@ services:
       - SYS_TIME
       - SYS_NICE
       - NET_BIND_SERVICE
+    healthcheck:
+      test: ["CMD", "dig", "+short", "+norecurse", "+retry=0", "@127.0.0.1", "pi.hole"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     restart: unless-stopped
     # networks:
     #   - homelab

@@ -27,11 +27,11 @@ services:
       - /etc/timezone:/etc/timezone:ro
     cap_add:
       # See https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+      # Required if you are using Pi-hole as your DHCP server, else not needed
       - NET_ADMIN
-      - NET_RAW
-      - NET_BIND_SERVICE
-      - SYS_NICE
       - SYS_TIME
+      - SYS_NICE
+      - NET_BIND_SERVICE
     restart: unless-stopped
     # networks:
     #   - homelab

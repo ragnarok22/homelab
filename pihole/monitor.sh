@@ -39,6 +39,10 @@ log "ALERT: Pi-hole DNS check failed (upstream resolution) — collecting diagno
   cat /proc/sys/fs/file-nr
   echo "=== MEMORY ==="
   free -h
+  echo "=== DEFAULT ROUTES ==="
+  ip route show default
+  echo "=== ROUTE TO 8.8.8.8 ==="
+  ip route get 8.8.8.8
   echo "=== PIHOLE CONTAINER ==="
   docker inspect "$CONTAINER" --format 'Status={{.State.Status}} Health={{.State.Health.Status}} Pid={{.State.Pid}} Started={{.State.StartedAt}}'
   echo "=== PIHOLE LOGS (last 20 lines) ==="
@@ -54,7 +58,7 @@ docker restart "$CONTAINER" >> "$LOGFILE" 2>&1
 sleep 30
 
 # Verify DNS works after restart
-if dig +short +norecurse +retry=0 +time=5 @127.0.0.1 pi.hole > /dev/null 2>&1; then
+if dig +short +retry=0 +time=5 @127.0.0.1 google.com > /dev/null 2>&1; then
   log "RESOLVED: Container restart fixed DNS"
 else
   log "UNRESOLVED: DNS still failing after container restart — server reboot likely needed"

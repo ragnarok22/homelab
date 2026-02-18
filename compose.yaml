@@ -10,6 +10,7 @@
 
 include:
   - path:
+    - cloudflared/compose.yaml
     - pgadmin/compose.yaml
     - nginx-manager/compose.yaml
     - pihole/compose.yaml

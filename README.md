@@ -9,6 +9,7 @@ A collection of self-hosted services running in Docker containers for my home la
 ## 📋 Services
 
 ### 🏠 Core Infrastructure
+- **[Cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)** - Cloudflare Tunnel client that creates encrypted tunnels to expose local services securely without opening inbound ports
 - **[Pi-hole](https://pi-hole.net/)** - Network-wide ad blocking DNS server that improves network performance by blocking ads before they download
 - **[Nginx Proxy Manager](https://github.com/nginx-proxy/nginx-proxy)** - Automated nginx proxy for Docker containers with SSL certificate management
 - **[Watchtower](https://github.com/containrrr/watchtower)** - Automatically updates running Docker containers to the latest available image

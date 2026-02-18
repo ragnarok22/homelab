@@ -65,7 +65,7 @@
   4. Add the service path under root `compose.yaml` `include:`
 
 ## Service Categories
-- Core infrastructure: Pi-hole, Nginx Proxy Manager, Watchtower
+- Core infrastructure: Cloudflared, Pi-hole, Nginx Proxy Manager, Watchtower
 - Media management: Jellyfin, Radarr, Sonarr, Prowlarr, qBittorrent
 - Monitoring: Homarr, Dash, pgAdmin
 - Home automation: Home Assistant

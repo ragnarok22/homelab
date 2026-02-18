@@ -1,0 +1,15 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    env_file:
+      - path: .env
+        required: true
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

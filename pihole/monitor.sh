@@ -17,11 +17,13 @@ log() {
 }
 
 # Test DNS resolution via Pi-hole
-if dig +short +norecurse +retry=0 +time=3 @127.0.0.1 pi.hole > /dev/null 2>&1; then
+# Check both local and upstream resolution — Pi-hole can resolve local
+# records (pi.hole) even when upstream forwarding is broken.
+if dig +short +retry=0 +time=3 @127.0.0.1 google.com > /dev/null 2>&1; then
   exit 0
 fi
 
-log "ALERT: Pi-hole DNS check failed — collecting diagnostics"
+log "ALERT: Pi-hole DNS check failed (upstream resolution) — collecting diagnostics"
 
 # Collect diagnostics BEFORE restarting to capture the degraded state
 {

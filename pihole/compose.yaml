@@ -33,7 +33,7 @@ services:
       - SYS_NICE
       - NET_BIND_SERVICE
     healthcheck:
-      test: ["CMD", "dig", "+short", "+norecurse", "+retry=0", "@127.0.0.1", "pi.hole"]
+      test: ["CMD", "dig", "+short", "+retry=0", "+time=3", "@127.0.0.1", "google.com"]
       interval: 30s
       timeout: 5s
       retries: 3

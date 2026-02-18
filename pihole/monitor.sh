@@ -4,7 +4,8 @@
 # Checks DNS resolution and auto-restarts the container if unhealthy.
 # Collects system diagnostics before restarting to help find root cause.
 #
-# Install as cron job (every 5 minutes):
+# Install as ROOT cron job (every 5 minutes):
+#   sudo crontab -e
 #   */5 * * * * /path/to/pihole/monitor.sh
 
 set -euo pipefail
@@ -50,16 +51,26 @@ log "ALERT: Pi-hole DNS check failed (upstream resolution) — collecting diagno
   echo "--- END DIAGNOSTICS ---"
 } >> "$LOGFILE" 2>&1
 
-# Attempt container restart
+# Step 1: Flush the kernel route cache — fixes broadcast route corruption
+# that blocks all outbound UDP (the most common cause of this failure)
+log "ACTION: Flushing kernel route cache"
+ip route flush cache >> "$LOGFILE" 2>&1
+
+sleep 5
+
+if dig +short +retry=0 +time=5 @127.0.0.1 google.com > /dev/null 2>&1; then
+  log "RESOLVED: Route cache flush fixed DNS"
+  exit 0
+fi
+
+# Step 2: Restart the container if route flush alone didn't help
 log "ACTION: Restarting $CONTAINER container"
 docker restart "$CONTAINER" >> "$LOGFILE" 2>&1
 
-# Wait for container to be ready
 sleep 30
 
-# Verify DNS works after restart
 if dig +short +retry=0 +time=5 @127.0.0.1 google.com > /dev/null 2>&1; then
   log "RESOLVED: Container restart fixed DNS"
 else
-  log "UNRESOLVED: DNS still failing after container restart — server reboot likely needed"
+  log "UNRESOLVED: DNS still failing after route flush + container restart"
 fi

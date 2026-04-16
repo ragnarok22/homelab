@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/ash
 # Disk space and I/O error monitor
 #
 # Checks host disk space usage and dmesg for I/O errors.
@@ -113,9 +113,11 @@ check_disk_space() {
 check_dmesg_errors() {
   log "Checking dmesg for new I/O errors"
 
-  # Get total line count of matching errors
-  all_errors=$(dmesg 2>/dev/null | grep -i -E "I/O error|medium error|blk_update_request.*error|ata.*error|nvme.*error|nvme.*timeout|EXT4-fs error") || true
-  current_count=$(printf '%s' "$all_errors" | wc -l)
+  # Write matching errors to a temp file to get an accurate line count
+  # (command substitution strips trailing newlines, causing miscounts)
+  local tmpfile="${STATE_DIR}/dmesg_tmp"
+  dmesg 2>/dev/null | grep -i -E "I/O error|medium error|blk_update_request.*error|ata.*error|nvme.*error|nvme.*timeout|EXT4-fs error" > "$tmpfile" 2>/dev/null || true
+  current_count=$(wc -l < "$tmpfile")
 
   # Load previous cursor (line count last seen)
   prev_count=0
@@ -124,16 +126,15 @@ check_dmesg_errors() {
   fi
 
   if [ "$current_count" -gt "$prev_count" ] 2>/dev/null; then
-    # Only alert on the NEW errors since last check
     new_count=$((current_count - prev_count))
-    new_errors=$(printf '%s' "$all_errors" | tail -n "$new_count")
+    new_errors=$(tail -n "$new_count" "$tmpfile")
     notify_dedup "dmesg_io" "Disk I/O Errors Detected" "${new_count} new kernel I/O error(s):\n${new_errors}" "high" "warning"
   else
     clear_alert "dmesg_io"
   fi
 
-  # Save cursor
   printf '%s' "$current_count" > "$DMESG_CURSOR_FILE"
+  rm -f "$tmpfile"
 }
 
 # --- Main loop ---

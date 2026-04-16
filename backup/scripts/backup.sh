@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/ash
 # Homelab backup service
 #
 # Daily: dumps PostgreSQL databases, tars Docker volumes, service configs,

@@ -1,7 +1,6 @@
 services:
   backup:
-    build:
-      context: ./backup
+    build: .
     container_name: backup
     restart: unless-stopped
     env_file:

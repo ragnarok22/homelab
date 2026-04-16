@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=dash
 # Homelab backup restore helper
 #
 # Usage:
@@ -242,6 +243,8 @@ restore_configs() {
 
       # Clean restore: remove existing subdir first so deleted files don't persist
       if [ -d "${dest}/${subdir}" ]; then
+        # Remove any stale backup from a previous interrupted restore
+        rm -rf "${dest}/${subdir}.restore_old"
         mv "${dest}/${subdir}" "${dest}/${subdir}.restore_old"
         if tar xzf "$archive" -C "$dest"; then
           rm -rf "${dest}/${subdir}.restore_old"

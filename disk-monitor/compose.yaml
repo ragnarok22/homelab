@@ -1,7 +1,6 @@
 services:
   disk-monitor:
-    build:
-      context: ./disk-monitor
+    build: .
     container_name: disk-monitor
     restart: unless-stopped
     env_file:

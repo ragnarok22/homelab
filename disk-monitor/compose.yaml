@@ -8,9 +8,8 @@ services:
         required: true
     volumes:
       - ./scripts:/scripts:ro
-      - /dev:/dev:ro
       - /:/host:ro
-    privileged: true
+    privileged: true  # required for dmesg access
     networks:
       - homelab
 

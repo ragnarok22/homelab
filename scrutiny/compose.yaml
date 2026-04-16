@@ -1,9 +1,8 @@
 services:
   scrutiny:
-    image: ghcr.io/analogj/scrutiny:master-omnibus
+    image: ghcr.io/analogj/scrutiny:v0.8.6-omnibus
     container_name: scrutiny
     restart: unless-stopped
-    privileged: true
     cap_add:
       - SYS_RAWIO
       - SYS_ADMIN
@@ -17,7 +16,9 @@ services:
       - ./config:/opt/scrutiny/config
       - ./influxdb:/opt/scrutiny/influxdb
       - /run/udev:/run/udev:ro
-      - /dev:/dev
+    devices:
+      - /dev/sda
+      - /dev/nvme0n1
     networks:
       - homelab
 

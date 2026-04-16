@@ -1,9 +1,10 @@
 #!/bin/sh
-# Disk health monitor
+# Disk space and I/O error monitor
 #
-# Checks SMART data for NVMe and HDD, disk space usage,
-# and dmesg for I/O errors. Sends alerts via ntfy.sh.
-# Uses state files to avoid duplicate notifications.
+# Checks host disk space usage and dmesg for I/O errors.
+# SMART monitoring is handled by Scrutiny — this script covers
+# what Scrutiny does not: filesystem usage and kernel I/O errors.
+# Sends alerts via ntfy.sh with deduplication.
 
 set -eu
 
@@ -62,110 +63,6 @@ clear_alert() {
   rm -f "${STATE_DIR}/${key}"
 }
 
-check_nvme() {
-  if [ -z "${NVME_DEVICE:-}" ]; then
-    return
-  fi
-
-  log "Checking NVMe: ${NVME_DEVICE}"
-
-  smart_json=$(smartctl -a "${NVME_DEVICE}" --json=c 2>/dev/null) || {
-    notify_dedup "nvme_read_fail" "Disk Monitor ALERT" "Failed to read SMART data from ${NVME_DEVICE}" "urgent" "warning"
-    return
-  }
-  clear_alert "nvme_read_fail"
-
-  temperature=$(echo "$smart_json" | jq -r '.temperature.current // empty')
-  media_errors=$(echo "$smart_json" | jq -r '.nvme_smart_health_information_log.media_errors // 0')
-  percentage_used=$(echo "$smart_json" | jq -r '.nvme_smart_health_information_log.percentage_used // 0')
-  critical_warning=$(echo "$smart_json" | jq -r '.nvme_smart_health_information_log.critical_warning // 0')
-  available_spare=$(echo "$smart_json" | jq -r '.nvme_smart_health_information_log.available_spare // 100')
-  power_on_hours=$(echo "$smart_json" | jq -r '.nvme_smart_health_information_log.power_on_hours // 0')
-
-  log "  temp=${temperature}C media_errors=${media_errors} used=${percentage_used}% spare=${available_spare}% hours=${power_on_hours}"
-
-  alerts=""
-
-  if [ "$critical_warning" -ne 0 ] 2>/dev/null; then
-    alerts="${alerts}CRITICAL: NVMe critical warning flag is ${critical_warning}\n"
-  fi
-
-  if [ "$media_errors" -gt 0 ] 2>/dev/null; then
-    alerts="${alerts}WARNING: NVMe has ${media_errors} media error(s)\n"
-  fi
-
-  if [ -n "$temperature" ] && [ "$temperature" -ge "${NVME_TEMP_WARN}" ] 2>/dev/null; then
-    alerts="${alerts}WARNING: NVMe temperature is ${temperature}C (threshold: ${NVME_TEMP_WARN}C)\n"
-  fi
-
-  if [ "$percentage_used" -ge 90 ] 2>/dev/null; then
-    alerts="${alerts}CRITICAL: NVMe wear level at ${percentage_used}%\n"
-  elif [ "$percentage_used" -ge 80 ] 2>/dev/null; then
-    alerts="${alerts}WARNING: NVMe wear level at ${percentage_used}%\n"
-  fi
-
-  if [ "$available_spare" -le 10 ] 2>/dev/null; then
-    alerts="${alerts}CRITICAL: NVMe available spare at ${available_spare}%\n"
-  fi
-
-  if [ -n "$alerts" ]; then
-    notify_dedup "nvme_health" "NVMe Health Alert" "$(printf '%b' "$alerts")" "high" "warning"
-  else
-    clear_alert "nvme_health"
-  fi
-}
-
-check_hdd() {
-  if [ -z "${HDD_DEVICE:-}" ]; then
-    return
-  fi
-
-  log "Checking HDD: ${HDD_DEVICE}"
-
-  smart_json=$(smartctl -a "${HDD_DEVICE}" --json=c 2>/dev/null) || {
-    notify_dedup "hdd_read_fail" "Disk Monitor ALERT" "Failed to read SMART data from ${HDD_DEVICE}" "urgent" "warning"
-    return
-  }
-  clear_alert "hdd_read_fail"
-
-  temperature=$(echo "$smart_json" | jq -r '.temperature.current // empty')
-  reallocated=$(echo "$smart_json" | jq -r '[.ata_smart_attributes.table[] | select(.id == 5)] | .[0].raw.value // 0')
-  pending_sectors=$(echo "$smart_json" | jq -r '[.ata_smart_attributes.table[] | select(.id == 197)] | .[0].raw.value // 0')
-  uncorrectable=$(echo "$smart_json" | jq -r '[.ata_smart_attributes.table[] | select(.id == 198)] | .[0].raw.value // 0')
-  power_on_hours=$(echo "$smart_json" | jq -r '[.ata_smart_attributes.table[] | select(.id == 9)] | .[0].raw.value // 0')
-  smart_passed=$(echo "$smart_json" | jq -r '.smart_status.passed // true')
-
-  log "  temp=${temperature}C reallocated=${reallocated} pending=${pending_sectors} uncorrectable=${uncorrectable} hours=${power_on_hours}"
-
-  alerts=""
-
-  if [ "$smart_passed" = "false" ]; then
-    alerts="${alerts}CRITICAL: HDD SMART overall assessment FAILED\n"
-  fi
-
-  if [ "$reallocated" -gt 0 ] 2>/dev/null; then
-    alerts="${alerts}WARNING: HDD has ${reallocated} reallocated sector(s)\n"
-  fi
-
-  if [ "$pending_sectors" -gt 0 ] 2>/dev/null; then
-    alerts="${alerts}WARNING: HDD has ${pending_sectors} pending sector(s)\n"
-  fi
-
-  if [ "$uncorrectable" -gt 0 ] 2>/dev/null; then
-    alerts="${alerts}WARNING: HDD has ${uncorrectable} uncorrectable error(s)\n"
-  fi
-
-  if [ -n "$temperature" ] && [ "$temperature" -ge "${HDD_TEMP_WARN}" ] 2>/dev/null; then
-    alerts="${alerts}WARNING: HDD temperature is ${temperature}C (threshold: ${HDD_TEMP_WARN}C)\n"
-  fi
-
-  if [ -n "$alerts" ]; then
-    notify_dedup "hdd_health" "HDD Health Alert" "$(printf '%b' "$alerts")" "high" "warning"
-  else
-    clear_alert "hdd_health"
-  fi
-}
-
 check_disk_space() {
   log "Checking disk space (host filesystems via /host)"
 
@@ -208,7 +105,6 @@ check_dmesg_errors() {
   errors=$(dmesg 2>/dev/null | grep -i -E "I/O error|medium error|blk_update_request.*error|ata.*error|nvme.*error|nvme.*timeout|EXT4-fs error" | tail -5) || true
 
   if [ -n "$errors" ]; then
-    # Hash the actual error lines so we only re-alert when new errors appear
     notify_dedup "dmesg_io" "Disk I/O Errors Detected" "Recent kernel I/O errors:\n${errors}" "high" "warning"
   else
     clear_alert "dmesg_io"
@@ -217,14 +113,12 @@ check_dmesg_errors() {
 
 # --- Main loop ---
 log "Disk monitor starting (interval: ${CHECK_INTERVAL}s)"
-log "NVMe: ${NVME_DEVICE:-none} | HDD: ${HDD_DEVICE:-none}"
-log "Thresholds: NVMe temp>=${NVME_TEMP_WARN}C, HDD temp>=${HDD_TEMP_WARN}C, space>=${DISK_USAGE_WARN}%/${DISK_USAGE_CRITICAL}%"
+log "SMART monitoring delegated to Scrutiny"
+log "Thresholds: space>=${DISK_USAGE_WARN}%/${DISK_USAGE_CRITICAL}%"
 
 while true; do
   log "=== Starting health check ==="
 
-  check_nvme
-  check_hdd
   check_disk_space
   check_dmesg_errors
 

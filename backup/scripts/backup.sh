@@ -18,7 +18,7 @@ notify() {
   local priority="${3:-default}"
   local tags="${4:-}"
 
-  curl -s \
+  curl -sf \
     -H "Title: ${title}" \
     -H "Priority: ${priority}" \
     -H "Tags: ${tags}" \

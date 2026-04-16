@@ -180,26 +180,33 @@ restore_volumes() {
       -v "$(dirname "$archive"):/backup:ro" \
       alpine:3.20 sh -c '
         set -e
-        # Phase 1: validate archive
-        mkdir -p /staging
-        tar xzf /backup/'"${archive_name}"' -C /staging
+        # All staging happens inside /volume (same filesystem), avoiding
+        # container writable layer limits on large restores.
 
-        # Phase 2: move old content aside WITHIN the volume (same filesystem)
+        # Phase 1: extract archive into staging dir inside the volume
+        rm -rf /volume/.restore_staging
+        mkdir -p /volume/.restore_staging
+        tar xzf /backup/'"${archive_name}"' -C /volume/.restore_staging
+
+        # Phase 2: move old content aside (same fs = instant rename)
         rm -rf /volume/.restore_old
         mkdir -p /volume/.restore_old
-        find /volume -mindepth 1 -maxdepth 1 ! -name .restore_old \
+        find /volume -mindepth 1 -maxdepth 1 \
+          ! -name .restore_staging ! -name .restore_old \
           -exec mv -- {} /volume/.restore_old/ \;
 
-        # Phase 3: move new content in from staging
-        if cp -a /staging/. /volume/; then
-          rm -rf /volume/.restore_old
+        # Phase 3: move staged content into place
+        if find /volume/.restore_staging -mindepth 1 -maxdepth 1 \
+            -exec mv -- {} /volume/ \;; then
+          rm -rf /volume/.restore_old /volume/.restore_staging
         else
-          echo "ROLLBACK: cp failed, restoring original content" >&2
-          find /volume -mindepth 1 -maxdepth 1 ! -name .restore_old \
+          echo "ROLLBACK: move failed, restoring original content" >&2
+          find /volume -mindepth 1 -maxdepth 1 \
+            ! -name .restore_old ! -name .restore_staging \
             -exec rm -rf -- {} \;
           find /volume/.restore_old -mindepth 1 -maxdepth 1 \
             -exec mv -- {} /volume/ \;
-          rm -rf /volume/.restore_old
+          rm -rf /volume/.restore_old /volume/.restore_staging
           exit 1
         fi
       '; then
@@ -254,7 +261,9 @@ restore_configs() {
           mv "${dest}/${subdir}.restore_old" "${dest}/${subdir}"
         fi
       else
-        tar xzf "$archive" -C "$dest"
+        if ! tar xzf "$archive" -C "$dest"; then
+          log "ERROR: extraction failed for ${svc}/${subdir}"
+        fi
       fi
     done
     log "Done: ${svc}"
@@ -281,7 +290,13 @@ restore_env_files() {
       continue
     fi
 
-    dest="${HOMELAB_DIR}/${svc}/.env"
+    svc_dir="${HOMELAB_DIR}/${svc}"
+    if [ ! -d "$svc_dir" ]; then
+      log "WARNING: Service directory ${svc_dir} not found, creating it"
+      mkdir -p "$svc_dir"
+    fi
+
+    dest="${svc_dir}/.env"
     if [ -f "$dest" ]; then
       log "WARNING: ${dest} already exists, backing up to ${dest}.bak"
       cp "$dest" "${dest}.bak"

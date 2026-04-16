@@ -126,9 +126,20 @@ check_dmesg_errors() {
   fi
 
   if [ "$current_count" -gt "$prev_count" ] 2>/dev/null; then
+    # New errors appeared since last check
     new_count=$((current_count - prev_count))
     new_errors=$(tail -n "$new_count" "$tmpfile")
     notify_dedup "dmesg_io" "Disk I/O Errors Detected" "${new_count} new kernel I/O error(s):\n${new_errors}" "high" "warning"
+  elif [ "$current_count" -lt "$prev_count" ] 2>/dev/null; then
+    # Ring buffer rotated or host rebooted — count dropped.
+    # Treat all current matches as potentially new.
+    if [ "$current_count" -gt 0 ]; then
+      log "  dmesg cursor reset (was ${prev_count}, now ${current_count}) — buffer rotated or host rebooted"
+      new_errors=$(tail -5 "$tmpfile")
+      notify_dedup "dmesg_io" "Disk I/O Errors (post-rotation)" "${current_count} I/O error(s) in current buffer:\n${new_errors}" "high" "warning"
+    else
+      clear_alert "dmesg_io"
+    fi
   else
     clear_alert "dmesg_io"
   fi

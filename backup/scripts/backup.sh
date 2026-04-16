@@ -75,7 +75,7 @@ backup_databases() {
   if docker ps --format '{{.Names}}' | grep -q "^${PG_CONTAINER}$"; then
     OLD_IFS="$IFS"; IFS=','
     for db in ${PG_DATABASES}; do
-      dump_pg "${PG_CONTAINER}" "${PG_USER}" "${db}" "${dest}/${PG_CONTAINER}_${db}.sql.gz" || failed=1
+      dump_pg "${PG_CONTAINER}" "${PG_USER}" "${db}" "${dest}/${PG_CONTAINER}__${db}.sql.gz" || failed=1
     done
     IFS="$OLD_IFS"
   else
@@ -87,7 +87,7 @@ backup_databases() {
   if docker ps --format '{{.Names}}' | grep -q "^${IMMICH_PG_CONTAINER}$"; then
     OLD_IFS="$IFS"; IFS=','
     for db in ${IMMICH_PG_DATABASES}; do
-      dump_pg "${IMMICH_PG_CONTAINER}" "${IMMICH_PG_USER}" "${db}" "${dest}/${IMMICH_PG_CONTAINER}_${db}.sql.gz" || failed=1
+      dump_pg "${IMMICH_PG_CONTAINER}" "${IMMICH_PG_USER}" "${db}" "${dest}/${IMMICH_PG_CONTAINER}__${db}.sql.gz" || failed=1
     done
     IFS="$OLD_IFS"
   else
@@ -196,8 +196,9 @@ backup_immich_library() {
 
   log "Backing up Immich library (this may take a long time)"
 
-  # Use hardlinks to previous weekly backup for space efficiency
-  prev_weekly=$(ls -1d "${BACKUP_DIR}/weekly/"*/ 2>/dev/null | sort -r | head -1) || true
+  # Use hardlinks to previous weekly backup for space efficiency.
+  # Skip the current run's directory (dest) when finding the previous backup.
+  prev_weekly=$(ls -1d "${BACKUP_DIR}/weekly/"*/ 2>/dev/null | grep -v "$(basename "$dest")" | sort -r | head -1) || true
   if [ -n "$prev_weekly" ] && [ -d "${prev_weekly}/immich-library" ]; then
     rsync -a --link-dest="${prev_weekly}/immich-library" "${immich_lib}/" "${dest}/immich-library/"
   else

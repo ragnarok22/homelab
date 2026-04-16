@@ -113,9 +113,11 @@ restore_databases() {
     [ -f "$dump" ] || continue
     filename=$(basename "$dump")
 
-    # Parse container and database from filename: container_database.sql.gz
-    container=$(echo "$filename" | sed 's/_[^_]*\.sql\.gz$//')
-    database=$(echo "$filename" | sed "s/^${container}_//" | sed 's/\.sql\.gz$//')
+    # Parse container and database from filename: container__database.sql.gz
+    # Uses __ (double underscore) as separator to support underscores in names
+    base="${filename%.sql.gz}"
+    container="${base%%__*}"
+    database="${base#*__}"
 
     if ! confirm "Restore ${database} to ${container}?"; then
       continue
@@ -167,32 +169,36 @@ restore_volumes() {
     fi
 
     log "Restoring volume: ${vol_name}..."
-    # Three-phase restore:
+    # Three-phase restore with rollback:
     #   1. Extract archive to /staging (fails = volume untouched)
-    #   2. Move old volume content to /old (preserves rollback path)
-    #   3. Copy new content; on failure, roll back from /old
+    #   2. Move old content to .restore_old INSIDE the volume (same fs = instant rename)
+    #   3. Move new content in; on failure, roll back from .restore_old
     archive_name=$(basename "$archive")
     if docker run --rm \
       -v "${vol_name}:/volume" \
       -v "$(dirname "$archive"):/backup:ro" \
       alpine:3.20 sh -c '
         set -e
-        # Phase 1: validate archive by extracting to staging
+        # Phase 1: validate archive
         mkdir -p /staging
         tar xzf /backup/'"${archive_name}"' -C /staging
 
-        # Phase 2: move current content aside (same filesystem = fast rename)
-        mkdir -p /old
-        find /volume -mindepth 1 -maxdepth 1 ! -name .old_restore_bak -exec mv {} /old/ 2>/dev/null \;
+        # Phase 2: move old content aside WITHIN the volume (same filesystem)
+        rm -rf /volume/.restore_old
+        mkdir -p /volume/.restore_old
+        find /volume -mindepth 1 -maxdepth 1 ! -name .restore_old \
+          -exec mv -- {} /volume/.restore_old/ \;
 
-        # Phase 3: copy new content
+        # Phase 3: move new content in from staging
         if cp -a /staging/. /volume/; then
-          rm -rf /old
+          rm -rf /volume/.restore_old
         else
           echo "ROLLBACK: cp failed, restoring original content" >&2
-          find /volume -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
-          mv /old/* /volume/ 2>/dev/null
-          rm -rf /old
+          find /volume -mindepth 1 -maxdepth 1 ! -name .restore_old \
+            -exec rm -rf -- {} \;
+          find /volume/.restore_old -mindepth 1 -maxdepth 1 \
+            -exec mv -- {} /volume/ \;
+          rm -rf /volume/.restore_old
           exit 1
         fi
       '; then

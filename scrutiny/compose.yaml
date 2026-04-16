@@ -17,8 +17,8 @@ services:
       - ./influxdb:/opt/scrutiny/influxdb
       - /run/udev:/run/udev:ro
     devices:
-      - /dev/sda
-      - /dev/nvme0n1
+      - /dev/sda:/dev/sda:r
+      - /dev/nvme0n1:/dev/nvme0n1:r
     networks:
       - homelab
 

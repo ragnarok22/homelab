@@ -32,3 +32,5 @@ include:
     - suwayomi/compose.yaml
     # - unifi/compose.yaml  # (deprecated)
     - watchtower/compose.yaml
+    - disk-monitor/compose.yaml
+    - backup/compose.yaml

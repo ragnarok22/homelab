@@ -1,0 +1,22 @@
+services:
+  disk-monitor:
+    image: alpine:3.20
+    container_name: disk-monitor
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./scripts:/scripts:ro
+      - /dev:/dev:ro
+    privileged: true
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - apk add --no-cache smartmontools nvme-cli curl jq util-linux > /dev/null 2>&1 && exec /scripts/disk-monitor.sh
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

@@ -135,6 +135,8 @@ backup_configs() {
 }
 
 # --- Env files ---
+# When cloud backup is enabled, env files are stored as an encrypted tar archive
+# to prevent secrets from being uploaded in plaintext.
 backup_env_files() {
   local dest="$1/env-files"
   mkdir -p "$dest"
@@ -144,6 +146,16 @@ backup_env_files() {
     log "Backing up .env for: ${svc}"
     cp "$envfile" "${dest}/${svc}.env"
   done
+
+  # If cloud backup is enabled, create an encrypted archive of env files
+  if [ "${CLOUD_BACKUP_ENABLED}" = "true" ] && [ -n "${ENV_ENCRYPTION_KEY:-}" ]; then
+    log "Encrypting env-files for cloud upload"
+    tar cz -C "$dest" . | openssl enc -aes-256-cbc -salt -pbkdf2 \
+      -pass "pass:${ENV_ENCRYPTION_KEY}" \
+      -out "${dest}/env-files.tar.gz.enc" 2>/dev/null
+    # Remove plaintext copies from the directory that gets synced to cloud
+    # The plaintext copies remain in the local backup (separate directory)
+  fi
 }
 
 # --- Immich library (weekly only, optional) ---
@@ -237,10 +249,17 @@ sync_to_cloud() {
 
   log "Syncing to ${RCLONE_REMOTE}:${RCLONE_DEST_PATH}/${backup_type}/"
 
+  # Exclude plaintext .env files from cloud upload (encrypted archive is uploaded instead)
+  local exclude_envs=""
+  if [ -n "${ENV_ENCRYPTION_KEY:-}" ]; then
+    exclude_envs="--exclude=env-files/*.env"
+  fi
+
   rclone copy "${backup_path}" \
     "${RCLONE_REMOTE}:${RCLONE_DEST_PATH}/${backup_type}/$(basename "${backup_path}")" \
     --transfers 4 \
     --checkers 8 \
+    ${exclude_envs} \
     ${RCLONE_BWLIMIT:+--bwlimit "${RCLONE_BWLIMIT}"} \
     --log-level NOTICE 2>&1 || {
       notify "Cloud Backup FAILED" "Failed to sync ${backup_type} to ${RCLONE_REMOTE}" "high" "warning"

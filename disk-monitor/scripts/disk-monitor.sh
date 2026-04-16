@@ -3,8 +3,12 @@
 #
 # Checks SMART data for NVMe and HDD, disk space usage,
 # and dmesg for I/O errors. Sends alerts via ntfy.sh.
+# Uses state files to avoid duplicate notifications.
 
 set -eu
+
+STATE_DIR="/tmp/disk-monitor-state"
+mkdir -p "$STATE_DIR"
 
 log() {
   echo "$(date '+%Y-%m-%d %H:%M:%S') $1"
@@ -24,6 +28,33 @@ notify() {
     "${NTFY_URL}/${NTFY_TOPIC}" > /dev/null 2>&1 || log "WARNING: Failed to send notification"
 }
 
+# Send notification only if the alert state has changed
+notify_dedup() {
+  local key="$1"
+  local title="$2"
+  local message="$3"
+  local priority="${4:-default}"
+  local tags="${5:-}"
+
+  local state_file="${STATE_DIR}/${key}"
+  local current_hash
+  current_hash=$(printf '%s' "$message" | md5sum | cut -d' ' -f1)
+
+  if [ -f "$state_file" ] && [ "$(cat "$state_file")" = "$current_hash" ]; then
+    log "  (dedup: skipping already-sent alert for ${key})"
+    return
+  fi
+
+  notify "$title" "$message" "$priority" "$tags"
+  printf '%s' "$current_hash" > "$state_file"
+}
+
+# Clear alert state when condition resolves
+clear_alert() {
+  local key="$1"
+  rm -f "${STATE_DIR}/${key}"
+}
+
 check_nvme() {
   if [ -z "${NVME_DEVICE:-}" ]; then
     return
@@ -32,9 +63,10 @@ check_nvme() {
   log "Checking NVMe: ${NVME_DEVICE}"
 
   smart_json=$(smartctl -a "${NVME_DEVICE}" --json=c 2>/dev/null) || {
-    notify "Disk Monitor ALERT" "Failed to read SMART data from ${NVME_DEVICE}" "urgent" "warning"
+    notify_dedup "nvme_read_fail" "Disk Monitor ALERT" "Failed to read SMART data from ${NVME_DEVICE}" "urgent" "warning"
     return
   }
+  clear_alert "nvme_read_fail"
 
   temperature=$(echo "$smart_json" | jq -r '.temperature.current // empty')
   media_errors=$(echo "$smart_json" | jq -r '.nvme_smart_health_information_log.media_errors // 0')
@@ -70,7 +102,9 @@ check_nvme() {
   fi
 
   if [ -n "$alerts" ]; then
-    notify "NVMe Health Alert" "$(printf '%b' "$alerts")" "high" "warning"
+    notify_dedup "nvme_health" "NVMe Health Alert" "$(printf '%b' "$alerts")" "high" "warning"
+  else
+    clear_alert "nvme_health"
   fi
 }
 
@@ -82,9 +116,10 @@ check_hdd() {
   log "Checking HDD: ${HDD_DEVICE}"
 
   smart_json=$(smartctl -a "${HDD_DEVICE}" --json=c 2>/dev/null) || {
-    notify "Disk Monitor ALERT" "Failed to read SMART data from ${HDD_DEVICE}" "urgent" "warning"
+    notify_dedup "hdd_read_fail" "Disk Monitor ALERT" "Failed to read SMART data from ${HDD_DEVICE}" "urgent" "warning"
     return
   }
+  clear_alert "hdd_read_fail"
 
   temperature=$(echo "$smart_json" | jq -r '.temperature.current // empty')
   reallocated=$(echo "$smart_json" | jq -r '[.ata_smart_attributes.table[] | select(.id == 5)] | .[0].raw.value // 0')
@@ -118,14 +153,15 @@ check_hdd() {
   fi
 
   if [ -n "$alerts" ]; then
-    notify "HDD Health Alert" "$(printf '%b' "$alerts")" "high" "warning"
+    notify_dedup "hdd_health" "HDD Health Alert" "$(printf '%b' "$alerts")" "high" "warning"
+  else
+    clear_alert "hdd_health"
   fi
 }
 
 check_disk_space() {
   log "Checking disk space (host filesystems via /host)"
 
-  # Read host's /proc/mounts to find real filesystems, then stat them via /host
   grep -E '^/dev/' /host/proc/mounts 2>/dev/null | awk '{print $2}' | sort -u | while read -r mount; do
     host_path="/host${mount}"
     [ -d "$host_path" ] || continue
@@ -144,10 +180,17 @@ check_disk_space() {
 
     log "  ${mount}: ${pct}% used (${avail_h} free)"
 
+    # Sanitize mount for use as state key
+    mount_key=$(printf '%s' "$mount" | tr '/' '_')
+
     if [ "$pct" -ge "${DISK_USAGE_CRITICAL}" ] 2>/dev/null; then
-      notify "Disk Space CRITICAL" "${mount} is ${pct}% full (${avail_h} remaining)" "urgent" "warning"
+      notify_dedup "space_crit_${mount_key}" "Disk Space CRITICAL" "${mount} is ${pct}% full (${avail_h} remaining)" "urgent" "warning"
     elif [ "$pct" -ge "${DISK_USAGE_WARN}" ] 2>/dev/null; then
-      notify "Disk Space Warning" "${mount} is ${pct}% full (${avail_h} remaining)" "high" "warning"
+      notify_dedup "space_warn_${mount_key}" "Disk Space Warning" "${mount} is ${pct}% full (${avail_h} remaining)" "high" "warning"
+      clear_alert "space_crit_${mount_key}"
+    else
+      clear_alert "space_warn_${mount_key}"
+      clear_alert "space_crit_${mount_key}"
     fi
   done
 }
@@ -158,7 +201,10 @@ check_dmesg_errors() {
   errors=$(dmesg 2>/dev/null | grep -i -E "I/O error|medium error|blk_update_request.*error|ata.*error|nvme.*error|nvme.*timeout|EXT4-fs error" | tail -5) || true
 
   if [ -n "$errors" ]; then
-    notify "Disk I/O Errors Detected" "Recent kernel I/O errors:\n${errors}" "high" "warning"
+    # Hash the actual error lines so we only re-alert when new errors appear
+    notify_dedup "dmesg_io" "Disk I/O Errors Detected" "Recent kernel I/O errors:\n${errors}" "high" "warning"
+  else
+    clear_alert "dmesg_io"
   fi
 }
 
@@ -167,7 +213,6 @@ log "Disk monitor starting (interval: ${CHECK_INTERVAL}s)"
 log "NVMe: ${NVME_DEVICE:-none} | HDD: ${HDD_DEVICE:-none}"
 log "Thresholds: NVMe temp>=${NVME_TEMP_WARN}C, HDD temp>=${HDD_TEMP_WARN}C, space>=${DISK_USAGE_WARN}%/${DISK_USAGE_CRITICAL}%"
 
-# Run first check immediately on startup
 while true; do
   log "=== Starting health check ==="
 

@@ -6,6 +6,7 @@ RUN apk add --no-cache \
     jq \
     rsync \
     gzip \
-    tar
+    tar \
+    openssl
 
 ENTRYPOINT ["/scripts/backup.sh"]

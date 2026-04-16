@@ -167,22 +167,24 @@ restore_volumes() {
     fi
 
     log "Restoring volume: ${vol_name}..."
-    # Extract to a temp dir first, then swap contents only on success
+    # Two-phase restore: extract to a staging volume first, then swap contents
+    # only after extraction succeeds. The original volume is untouched on failure.
     archive_name=$(basename "$archive")
-    docker run --rm \
+    if docker run --rm \
       -v "${vol_name}:/volume" \
       -v "$(dirname "$archive"):/backup:ro" \
       alpine:3.20 sh -c "
-        mkdir -p /tmp/restore && \
-        tar xzf /backup/${archive_name} -C /tmp/restore && \
-        find /volume -mindepth 1 -delete 2>/dev/null; \
-        cp -a /tmp/restore/. /volume/ && \
-        rm -rf /tmp/restore
-      "
-    if [ $? -eq 0 ]; then
+        set -e
+        mkdir -p /staging
+        tar xzf /backup/${archive_name} -C /staging
+        find /volume -mindepth 1 -delete
+        cp -a /staging/. /volume/
+      "; then
       log "Done: ${vol_name}"
     else
-      log "ERROR: Failed to restore volume ${vol_name} — volume may be in an inconsistent state"
+      log "ERROR: Failed to restore volume ${vol_name}"
+      log "  If extraction failed, original volume data is preserved."
+      log "  If copy failed, volume may be incomplete — re-run restore."
     fi
   done
 }

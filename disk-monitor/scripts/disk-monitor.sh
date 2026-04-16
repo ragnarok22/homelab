@@ -20,15 +20,21 @@ notify() {
   local priority="${3:-default}"
   local tags="${4:-}"
 
-  curl -s \
+  if curl -sf \
     -H "Title: ${title}" \
     -H "Priority: ${priority}" \
     -H "Tags: ${tags}" \
     -d "${message}" \
-    "${NTFY_URL}/${NTFY_TOPIC}" > /dev/null 2>&1 || log "WARNING: Failed to send notification"
+    "${NTFY_URL}/${NTFY_TOPIC}" > /dev/null 2>&1; then
+    return 0
+  else
+    log "WARNING: Failed to send notification"
+    return 1
+  fi
 }
 
-# Send notification only if the alert state has changed
+# Send notification only if the alert state has changed.
+# Only marks the alert as sent if delivery actually succeeded.
 notify_dedup() {
   local key="$1"
   local title="$2"
@@ -45,8 +51,9 @@ notify_dedup() {
     return
   fi
 
-  notify "$title" "$message" "$priority" "$tags"
-  printf '%s' "$current_hash" > "$state_file"
+  if notify "$title" "$message" "$priority" "$tags"; then
+    printf '%s' "$current_hash" > "$state_file"
+  fi
 }
 
 # Clear alert state when condition resolves

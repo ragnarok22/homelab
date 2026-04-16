@@ -34,22 +34,28 @@ dump_pg() {
   local outfile="$4"
 
   log "Dumping ${container}/${db}"
-  local tmpfile="${outfile}.tmp"
+  local tmpraw="${outfile%.gz}.tmp"
 
-  # Dump to temp file first so we can detect failures
-  if docker exec "${container}" pg_dump -U "${user}" -d "${db}" 2>&1 | gzip > "${tmpfile}"; then
-    # Verify the dump is not empty (a valid pg_dump always produces output)
-    local size
-    size=$(stat -c%s "${tmpfile}" 2>/dev/null || stat -f%z "${tmpfile}" 2>/dev/null || echo 0)
-    if [ "$size" -gt 20 ]; then
-      mv "${tmpfile}" "${outfile}"
-      return 0
-    fi
+  # Dump to raw SQL first so we can check docker exec's exit code directly.
+  # Piping through gzip would mask a pg_dump failure.
+  if ! docker exec "${container}" pg_dump -U "${user}" -d "${db}" > "${tmpraw}" 2>&1; then
+    log "ERROR: pg_dump failed for ${container}/${db}"
+    # Log first lines of output for diagnostics (may contain the error message)
+    head -5 "${tmpraw}" 2>/dev/null | while read -r line; do log "  pg_dump: ${line}"; done
+    rm -f "${tmpraw}"
+    return 1
   fi
 
-  log "ERROR: pg_dump failed for ${container}/${db}"
-  rm -f "${tmpfile}"
-  return 1
+  # A valid pg_dump always produces a header comment; reject trivially small dumps
+  local size
+  size=$(wc -c < "${tmpraw}" 2>/dev/null || echo 0)
+  if [ "$size" -lt 20 ]; then
+    log "ERROR: pg_dump produced empty output for ${container}/${db}"
+    rm -f "${tmpraw}"
+    return 1
+  fi
+
+  gzip -c "${tmpraw}" > "${outfile}" && rm -f "${tmpraw}"
 }
 
 backup_databases() {
@@ -249,17 +255,18 @@ sync_to_cloud() {
 
   log "Syncing to ${RCLONE_REMOTE}:${RCLONE_DEST_PATH}/${backup_type}/"
 
-  # Exclude plaintext .env files from cloud upload (encrypted archive is uploaded instead)
-  local exclude_envs=""
-  if [ -n "${ENV_ENCRYPTION_KEY:-}" ]; then
-    exclude_envs="--exclude=env-files/*.env"
+  # Always exclude plaintext .env files from cloud upload.
+  # If an encryption key is set, the encrypted archive (env-files.tar.gz.enc) is uploaded instead.
+  # If no key is set, env files are only available in the local backup.
+  if [ -z "${ENV_ENCRYPTION_KEY:-}" ]; then
+    log "WARNING: ENV_ENCRYPTION_KEY not set — .env files will NOT be uploaded to cloud"
   fi
 
   rclone copy "${backup_path}" \
     "${RCLONE_REMOTE}:${RCLONE_DEST_PATH}/${backup_type}/$(basename "${backup_path}")" \
     --transfers 4 \
     --checkers 8 \
-    ${exclude_envs} \
+    --exclude "env-files/*.env" \
     ${RCLONE_BWLIMIT:+--bwlimit "${RCLONE_BWLIMIT}"} \
     --log-level NOTICE 2>&1 || {
       notify "Cloud Backup FAILED" "Failed to sync ${backup_type} to ${RCLONE_REMOTE}" "high" "warning"

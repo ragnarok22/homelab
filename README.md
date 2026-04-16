@@ -17,6 +17,7 @@ A collection of self-hosted services running in Docker containers for my home la
 ### 📊 Monitoring & Management
 - **[Homarr](https://homarr.dev/)** - Customizable browser's home page to organize your self-hosted services
 - **[Dash](https://github.com/MauriceNino/dashdot)** - A simple, modern server dashboard for monitoring system performance
+- **[Scrutiny](https://github.com/AnalogJ/scrutiny)** - S.M.A.R.T. drive health dashboard with historical metrics and failure-focused alerts
 - **[pgAdmin](https://www.pgadmin.org/)** - Management tool for PostgreSQL databases
 - **[Unifi Network Application](https://ui.com/)** *(deprecated)* - Enterprise network management platform for Unifi devices
 

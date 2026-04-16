@@ -12,6 +12,9 @@ home-assistant/influxdb/
 home-assistant/influxdb2/
 home-assistant/telegraf/
 
+# scrutiny service runtime data
+scrutiny/influxdb/
+
 # immich service runtime data
 immich/library/
 immich/postgres/

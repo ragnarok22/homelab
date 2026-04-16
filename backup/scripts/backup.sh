@@ -35,13 +35,21 @@ dump_pg() {
 
   log "Dumping ${container}/${db}"
   local tmpraw="${outfile%.gz}.tmp"
+  local tmperr="${outfile%.gz}.err"
 
-  # Dump to raw SQL first so we can check docker exec's exit code directly.
-  # Piping through gzip would mask a pg_dump failure.
-  if ! docker exec "${container}" pg_dump -U "${user}" -d "${db}" > "${tmpraw}" 2>&1; then
-    log "ERROR: pg_dump failed for ${container}/${db}"
-    # Log first lines of output for diagnostics (may contain the error message)
-    head -5 "${tmpraw}" 2>/dev/null | while read -r line; do log "  pg_dump: ${line}"; done
+  # Separate stdout (SQL) from stderr (warnings/errors) so pg_dump warnings
+  # never end up inside the restorable dump file.
+  docker exec "${container}" pg_dump -U "${user}" -d "${db}" > "${tmpraw}" 2>"${tmperr}"
+  local rc=$?
+
+  # Log any stderr output (warnings or errors)
+  if [ -s "${tmperr}" ]; then
+    while read -r line; do log "  pg_dump stderr: ${line}"; done < "${tmperr}"
+  fi
+  rm -f "${tmperr}"
+
+  if [ "$rc" -ne 0 ]; then
+    log "ERROR: pg_dump failed for ${container}/${db} (exit code ${rc})"
     rm -f "${tmpraw}"
     return 1
   fi
@@ -94,20 +102,28 @@ backup_databases() {
 backup_volumes() {
   local dest="$1/volumes"
   mkdir -p "$dest"
+  local failed=0
 
   OLD_IFS="$IFS"; IFS=','
   for vol in ${BACKUP_VOLUMES}; do
-    if docker volume inspect "${vol}" > /dev/null 2>&1; then
-      log "Backing up volume: ${vol}"
-      docker run --rm \
-        -v "${vol}:/volume:ro" \
-        -v "${dest}:/backup" \
-        alpine:3.20 tar czf "/backup/${vol}.tar.gz" -C /volume . 2>/dev/null
-    else
-      log "WARNING: Volume ${vol} not found, skipping"
+    if ! docker volume inspect "${vol}" > /dev/null 2>&1; then
+      log "ERROR: Expected volume ${vol} not found"
+      failed=1
+      continue
+    fi
+
+    log "Backing up volume: ${vol}"
+    if ! docker run --rm \
+      -v "${vol}:/volume:ro" \
+      -v "${dest}:/backup" \
+      alpine:3.20 tar czf "/backup/${vol}.tar.gz" -C /volume . 2>&1; then
+      log "ERROR: Failed to archive volume ${vol}"
+      failed=1
     fi
   done
   IFS="$OLD_IFS"
+
+  return $failed
 }
 
 # --- Service configs (bind mounts) ---

@@ -1,0 +1,26 @@
+services:
+  scrutiny:
+    image: ghcr.io/analogj/scrutiny:master-omnibus
+    container_name: scrutiny
+    restart: unless-stopped
+    privileged: true
+    cap_add:
+      - SYS_RAWIO
+      - SYS_ADMIN
+    env_file:
+      - path: .env
+        required: true
+    # ports:
+    #   - 8080:8080 # Web UI / API
+    #   - 8086:8086 # InfluxDB admin
+    volumes:
+      - ./config:/opt/scrutiny/config
+      - ./influxdb:/opt/scrutiny/influxdb
+      - /run/udev:/run/udev:ro
+      - /dev:/dev
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

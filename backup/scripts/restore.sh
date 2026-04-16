@@ -167,24 +167,38 @@ restore_volumes() {
     fi
 
     log "Restoring volume: ${vol_name}..."
-    # Two-phase restore: extract to a staging volume first, then swap contents
-    # only after extraction succeeds. The original volume is untouched on failure.
+    # Three-phase restore:
+    #   1. Extract archive to /staging (fails = volume untouched)
+    #   2. Move old volume content to /old (preserves rollback path)
+    #   3. Copy new content; on failure, roll back from /old
     archive_name=$(basename "$archive")
     if docker run --rm \
       -v "${vol_name}:/volume" \
       -v "$(dirname "$archive"):/backup:ro" \
-      alpine:3.20 sh -c "
+      alpine:3.20 sh -c '
         set -e
+        # Phase 1: validate archive by extracting to staging
         mkdir -p /staging
-        tar xzf /backup/${archive_name} -C /staging
-        find /volume -mindepth 1 -delete
-        cp -a /staging/. /volume/
-      "; then
+        tar xzf /backup/'"${archive_name}"' -C /staging
+
+        # Phase 2: move current content aside (same filesystem = fast rename)
+        mkdir -p /old
+        find /volume -mindepth 1 -maxdepth 1 ! -name .old_restore_bak -exec mv {} /old/ 2>/dev/null \;
+
+        # Phase 3: copy new content
+        if cp -a /staging/. /volume/; then
+          rm -rf /old
+        else
+          echo "ROLLBACK: cp failed, restoring original content" >&2
+          find /volume -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
+          mv /old/* /volume/ 2>/dev/null
+          rm -rf /old
+          exit 1
+        fi
+      '; then
       log "Done: ${vol_name}"
     else
       log "ERROR: Failed to restore volume ${vol_name}"
-      log "  If extraction failed, original volume data is preserved."
-      log "  If copy failed, volume may be incomplete — re-run restore."
     fi
   done
 }

@@ -34,36 +34,43 @@ dump_pg() {
   local outfile="$4"
 
   log "Dumping ${container}/${db}"
-  local tmpraw="${outfile%.gz}.tmp"
-  local tmperr="${outfile%.gz}.err"
+  local tmpgz="${outfile}.tmp"
 
-  # Separate stdout (SQL) from stderr (warnings/errors) so pg_dump warnings
-  # never end up inside the restorable dump file.
-  docker exec "${container}" pg_dump -U "${user}" -d "${db}" > "${tmpraw}" 2>"${tmperr}"
-  local rc=$?
+  # Stream pg_dump directly through gzip to avoid storing the full
+  # uncompressed dump on the backup container's filesystem.
+  # pg_dump's exit code is saved inside the pg container since the pipe
+  # only reports gzip's exit code.
+  docker exec "${container}" sh -c "
+    pg_dump -U '${user}' -d '${db}' 2>/tmp/_dump_err
+    echo \$? > /tmp/_dump_rc
+  " | gzip > "${tmpgz}"
 
-  # Log any stderr output (warnings or errors)
-  if [ -s "${tmperr}" ]; then
-    while read -r line; do log "  pg_dump stderr: ${line}"; done < "${tmperr}"
+  # Retrieve pg_dump's exit code and stderr from inside the pg container
+  local rc
+  rc=$(docker exec "${container}" sh -c 'cat /tmp/_dump_rc 2>/dev/null; rm -f /tmp/_dump_rc' 2>/dev/null || echo 1)
+
+  local stderr_out
+  stderr_out=$(docker exec "${container}" sh -c 'cat /tmp/_dump_err 2>/dev/null; rm -f /tmp/_dump_err' 2>/dev/null) || true
+  if [ -n "$stderr_out" ]; then
+    printf '%s\n' "$stderr_out" | while read -r line; do log "  pg_dump stderr: ${line}"; done
   fi
-  rm -f "${tmperr}"
 
-  if [ "$rc" -ne 0 ]; then
+  if [ "$rc" != "0" ]; then
     log "ERROR: pg_dump failed for ${container}/${db} (exit code ${rc})"
-    rm -f "${tmpraw}"
+    rm -f "${tmpgz}"
     return 1
   fi
 
-  # A valid pg_dump always produces a header comment; reject trivially small dumps
+  # Verify the compressed dump is not trivially small
   local size
-  size=$(wc -c < "${tmpraw}" 2>/dev/null || echo 0)
+  size=$(wc -c < "${tmpgz}" 2>/dev/null || echo 0)
   if [ "$size" -lt 20 ]; then
     log "ERROR: pg_dump produced empty output for ${container}/${db}"
-    rm -f "${tmpraw}"
+    rm -f "${tmpgz}"
     return 1
   fi
 
-  gzip -c "${tmpraw}" > "${outfile}" && rm -f "${tmpraw}"
+  mv "${tmpgz}" "${outfile}"
 }
 
 backup_databases() {
@@ -313,13 +320,13 @@ run_backup() {
   local start_time
   start_time=$(date +%s)
 
-  backup_databases "$dest" || errors="${errors}- Database backup failed\n"
-  backup_volumes "$dest" || errors="${errors}- Volume backup failed\n"
-  backup_configs "$dest" || errors="${errors}- Config backup failed\n"
-  backup_env_files "$dest" || errors="${errors}- Env file backup failed\n"
+  backup_databases "$dest" || errors="${errors}$(printf '- Database backup failed\n')"
+  backup_volumes "$dest" || errors="${errors}$(printf '- Volume backup failed\n')"
+  backup_configs "$dest" || errors="${errors}$(printf '- Config backup failed\n')"
+  backup_env_files "$dest" || errors="${errors}$(printf '- Env file backup failed\n')"
 
   if [ "$backup_type" = "weekly" ]; then
-    backup_immich_library "$dest" || errors="${errors}- Immich library backup failed\n"
+    backup_immich_library "$dest" || errors="${errors}$(printf '- Immich library backup failed\n')"
   fi
 
   write_manifest "$dest" "$backup_type"
@@ -332,7 +339,7 @@ run_backup() {
       cloud_status=" | Cloud: OK"
     else
       cloud_status=" | Cloud: FAILED"
-      errors="${errors}- Cloud sync failed\n"
+      errors="${errors}$(printf '- Cloud sync failed\n')"
     fi
   fi
 
@@ -343,7 +350,7 @@ run_backup() {
   size=$(du -sh "$dest" | cut -f1)
 
   if [ -n "$errors" ]; then
-    notify "Backup Completed with Errors" "${backup_type} backup (${size}, ${duration}s)${cloud_status}\n\nErrors:\n${errors}" "high" "warning"
+    notify "Backup Completed with Errors" "$(printf '%s backup (%s, %ss)%s\n\nErrors:\n%s' "$backup_type" "$size" "$duration" "$cloud_status" "$errors")" "high" "warning"
   else
     notify "Backup Successful" "${backup_type} backup completed (${size}, ${duration}s)${cloud_status}" "default" "white_check_mark"
   fi
@@ -357,18 +364,35 @@ log "Schedule: daily at ${DAILY_BACKUP_TIME}, weekly on day ${WEEKLY_BACKUP_DAY}
 log "Retention: ${RETENTION_DAILY} daily, ${RETENTION_WEEKLY} weekly"
 log "Cloud: ${CLOUD_BACKUP_ENABLED}"
 
+LAST_RUN_FILE="/tmp/backup_last_run"
+
+should_run_today() {
+  local today
+  today=$(date '+%Y-%m-%d')
+  if [ -f "$LAST_RUN_FILE" ] && [ "$(cat "$LAST_RUN_FILE")" = "$today" ]; then
+    return 1
+  fi
+  return 0
+}
+
+mark_ran_today() {
+  date '+%Y-%m-%d' > "$LAST_RUN_FILE"
+}
+
 while true; do
   current_time=$(date '+%H:%M')
-  current_dow=$(date '+%w')
+  current_hour=$(echo "$current_time" | cut -d: -f1)
+  target_hour=$(echo "${DAILY_BACKUP_TIME}" | cut -d: -f1)
 
-  if [ "$current_time" = "${DAILY_BACKUP_TIME}" ]; then
+  # Run if we're at or past the target hour and haven't run today yet
+  if [ "$current_hour" -ge "$target_hour" ] 2>/dev/null && should_run_today; then
+    current_dow=$(date '+%w')
     if [ "$current_dow" = "${WEEKLY_BACKUP_DAY}" ]; then
       run_backup "weekly"
     fi
     run_backup "daily"
-    # Sleep past the trigger minute
-    sleep 120
+    mark_ran_today
   fi
 
-  sleep 30
+  sleep 60
 done

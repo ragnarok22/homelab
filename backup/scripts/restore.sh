@@ -127,6 +127,7 @@ restore_databases() {
 
     if ! docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
       log "ERROR: Container ${container} is not running. Start it first."
+      failed=1
       continue
     fi
 

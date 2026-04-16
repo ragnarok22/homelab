@@ -70,9 +70,10 @@ clear_alert() {
 check_disk_space() {
   log "Checking disk space"
 
-  # Track which devices we've already reported on to avoid duplicate alerts
-  # when multiple mount labels point to the same underlying filesystem
+  # Track devices seen in this run to detect when a dedicated mount
+  # has disappeared (its path falls back to the parent filesystem).
   local seen_devices=""
+  local device_labels=""
 
   # MONITOR_MOUNTS format: "container_path:label,container_path:label,..."
   OLD_IFS="$IFS"; IFS=','
@@ -91,11 +92,21 @@ check_disk_space() {
     avail=$(echo "$line" | awk '{print $4}')
     [ -n "$pct" ] || continue
 
-    # Skip if we already reported this device under a different label
+    mount_key=$(printf '%s' "$mnt_label" | tr '/' '_')
+
+    # Check if this device was already seen under a different label.
+    # That means a dedicated filesystem is no longer mounted and the
+    # path fell back to a parent mount — alert instead of skipping.
     case "$seen_devices" in
-      *"|${device}|"*) log "  ${mnt_label}: (same device as previous, skipping)"; continue ;;
+      *"|${device}|"*)
+        prev_label=$(printf '%s' "$device_labels" | grep "^${device}=" | head -1 | cut -d= -f2-)
+        notify_dedup "mount_missing_${mount_key}" "Filesystem Missing" "$(printf '%s is on the same device as %s — dedicated mount may have disappeared' "$mnt_label" "$prev_label")" "high" "warning"
+        continue
+        ;;
     esac
+    clear_alert "mount_missing_${mount_key}"
     seen_devices="${seen_devices}|${device}|"
+    device_labels="$(printf '%s\n%s=%s' "$device_labels" "$device" "$mnt_label")"
 
     avail_h=$(echo "$avail" | awk '{
       if ($1 >= 1073741824) printf "%.1fT", $1/1073741824;
@@ -129,7 +140,7 @@ check_dmesg_errors() {
 
   # Test that dmesg is accessible before relying on its output
   if ! dmesg > /dev/null 2>"$dmesg_err"; then
-    notify_dedup "dmesg_access" "Disk Monitor Warning" "Cannot read kernel ring buffer (dmesg). I/O error monitoring is disabled.\n$(cat "$dmesg_err")" "high" "warning"
+    notify_dedup "dmesg_access" "Disk Monitor Warning" "$(printf 'Cannot read kernel ring buffer (dmesg). I/O error monitoring is disabled.\n%s' "$(cat "$dmesg_err")")" "high" "warning"
     rm -f "$dmesg_err"
     return
   fi
@@ -150,14 +161,14 @@ check_dmesg_errors() {
     # New errors appeared since last check
     new_count=$((current_count - prev_count))
     new_errors=$(tail -n "$new_count" "$tmpfile")
-    notify_dedup "dmesg_io" "Disk I/O Errors Detected" "${new_count} new kernel I/O error(s):\n${new_errors}" "high" "warning"
+    notify_dedup "dmesg_io" "Disk I/O Errors Detected" "$(printf '%s new kernel I/O error(s):\n%s' "$new_count" "$new_errors")" "high" "warning"
   elif [ "$current_count" -lt "$prev_count" ] 2>/dev/null; then
     # Ring buffer rotated or host rebooted — count dropped.
     # Treat all current matches as potentially new.
     if [ "$current_count" -gt 0 ]; then
       log "  dmesg cursor reset (was ${prev_count}, now ${current_count}) — buffer rotated or host rebooted"
       new_errors=$(tail -5 "$tmpfile")
-      notify_dedup "dmesg_io" "Disk I/O Errors (post-rotation)" "${current_count} I/O error(s) in current buffer:\n${new_errors}" "high" "warning"
+      notify_dedup "dmesg_io" "Disk I/O Errors (post-rotation)" "$(printf '%s I/O error(s) in current buffer:\n%s' "$current_count" "$new_errors")" "high" "warning"
     else
       clear_alert "dmesg_io"
     fi

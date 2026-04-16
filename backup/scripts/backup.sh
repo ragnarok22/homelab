@@ -120,11 +120,14 @@ backup_volumes() {
     fi
 
     log "Backing up volume: ${vol}"
-    if ! docker run --rm \
+    if docker run --rm \
       -v "${vol}:/volume:ro" \
       -v "${dest}:/backup" \
-      alpine:3.20 tar czf "/backup/${vol}.tar.gz" -C /volume . 2>&1; then
+      alpine:3.20 tar czf "/backup/${vol}.tar.gz.tmp" -C /volume . 2>&1; then
+      mv "${dest}/${vol}.tar.gz.tmp" "${dest}/${vol}.tar.gz"
+    else
       log "ERROR: Failed to archive volume ${vol}"
+      rm -f "${dest}/${vol}.tar.gz.tmp"
       failed=1
     fi
   done
@@ -151,8 +154,11 @@ backup_configs() {
 
     for subdir in config data appdata cache letsencrypt esphome grafana influxdb influxdb2 telegraf adb-keys; do
       if [ -d "${svc_dir}/${subdir}" ]; then
-        if ! tar czf "${dest}/${svc}/${subdir}.tar.gz" -C "${svc_dir}" "${subdir}" 2>&1; then
+        if tar czf "${dest}/${svc}/${subdir}.tar.gz.tmp" -C "${svc_dir}" "${subdir}" 2>&1; then
+          mv "${dest}/${svc}/${subdir}.tar.gz.tmp" "${dest}/${svc}/${subdir}.tar.gz"
+        else
           log "ERROR: Failed to archive ${svc}/${subdir}"
+          rm -f "${dest}/${svc}/${subdir}.tar.gz.tmp"
           failed=1
         fi
       fi
@@ -380,17 +386,20 @@ mark_ran_today() {
 }
 
 while true; do
-  current_time=$(date '+%H:%M')
-  current_hour=$(echo "$current_time" | cut -d: -f1)
-  target_hour=$(echo "${DAILY_BACKUP_TIME}" | cut -d: -f1)
+  current_hhmm=$(date '+%H:%M')
+  # Convert HH:MM to minutes since midnight for comparison
+  cur_mins=$(( $(echo "$current_hhmm" | cut -d: -f1) * 60 + $(echo "$current_hhmm" | cut -d: -f2) ))
+  tgt_mins=$(( $(echo "${DAILY_BACKUP_TIME}" | cut -d: -f1) * 60 + $(echo "${DAILY_BACKUP_TIME}" | cut -d: -f2) ))
 
-  # Run if we're at or past the target hour and haven't run today yet
-  if [ "$current_hour" -ge "$target_hour" ] 2>/dev/null && should_run_today; then
+  # Run if we're at or past the target time and haven't run today yet
+  if [ "$cur_mins" -ge "$tgt_mins" ] && should_run_today; then
     current_dow=$(date '+%w')
     if [ "$current_dow" = "${WEEKLY_BACKUP_DAY}" ]; then
+      # Weekly backup is a superset of daily — skip the separate daily run
       run_backup "weekly"
+    else
+      run_backup "daily"
     fi
-    run_backup "daily"
     mark_ran_today
   fi
 

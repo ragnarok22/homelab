@@ -138,12 +138,24 @@ restore_databases() {
     esac
 
     log "Restoring ${database} to ${container} (user: ${pg_user})..."
-    if gunzip -c "$dump" | docker exec -i "${container}" psql -U "${pg_user}" -d "${database}" --set ON_ERROR_STOP=1 2>&1; then
+
+    # Decompress to a temp file first so a corrupt .sql.gz is caught
+    # before psql runs (pipe would mask gunzip failure).
+    local tmpsql="/tmp/restore_${container}_${database}.sql"
+    if ! gunzip -c "$dump" > "$tmpsql" 2>&1; then
+      log "ERROR: Failed to decompress ${filename}"
+      rm -f "$tmpsql"
+      failed=1
+      continue
+    fi
+
+    if docker exec -i "${container}" psql -U "${pg_user}" -d "${database}" --set ON_ERROR_STOP=1 < "$tmpsql" 2>&1; then
       log "Done: ${database}"
     else
       log "ERROR: Failed to restore ${database} to ${container}"
       failed=1
     fi
+    rm -f "$tmpsql"
   done
   return $failed
 }

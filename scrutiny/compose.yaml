@@ -18,7 +18,8 @@ services:
       - /run/udev:/run/udev:ro
     devices:
       - /dev/sda:/dev/sda:r
-      - /dev/nvme0n1:/dev/nvme0n1:r
+      - /dev/nvme0:/dev/nvme0:r         # NVMe controller (character device, needed for SMART)
+      - /dev/nvme0n1:/dev/nvme0n1:r     # NVMe namespace (block device)
     networks:
       - homelab
 

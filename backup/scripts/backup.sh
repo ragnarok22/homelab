@@ -27,33 +27,61 @@ notify() {
 }
 
 # --- Database backup ---
+dump_pg() {
+  local container="$1"
+  local user="$2"
+  local db="$3"
+  local outfile="$4"
+
+  log "Dumping ${container}/${db}"
+  local tmpfile="${outfile}.tmp"
+
+  # Dump to temp file first so we can detect failures
+  if docker exec "${container}" pg_dump -U "${user}" -d "${db}" 2>&1 | gzip > "${tmpfile}"; then
+    # Verify the dump is not empty (a valid pg_dump always produces output)
+    local size
+    size=$(stat -c%s "${tmpfile}" 2>/dev/null || stat -f%z "${tmpfile}" 2>/dev/null || echo 0)
+    if [ "$size" -gt 20 ]; then
+      mv "${tmpfile}" "${outfile}"
+      return 0
+    fi
+  fi
+
+  log "ERROR: pg_dump failed for ${container}/${db}"
+  rm -f "${tmpfile}"
+  return 1
+}
+
 backup_databases() {
   local dest="$1/databases"
   mkdir -p "$dest"
+  local failed=0
 
   # Shared PostgreSQL
   if docker ps --format '{{.Names}}' | grep -q "^${PG_CONTAINER}$"; then
     OLD_IFS="$IFS"; IFS=','
     for db in ${PG_DATABASES}; do
-      log "Dumping ${PG_CONTAINER}/${db}"
-      docker exec "${PG_CONTAINER}" pg_dump -U "${PG_USER}" -d "${db}" 2>/dev/null | gzip > "${dest}/${PG_CONTAINER}_${db}.sql.gz"
+      dump_pg "${PG_CONTAINER}" "${PG_USER}" "${db}" "${dest}/${PG_CONTAINER}_${db}.sql.gz" || failed=1
     done
     IFS="$OLD_IFS"
   else
     log "WARNING: Container ${PG_CONTAINER} not running, skipping"
+    failed=1
   fi
 
   # Immich PostgreSQL
   if docker ps --format '{{.Names}}' | grep -q "^${IMMICH_PG_CONTAINER}$"; then
     OLD_IFS="$IFS"; IFS=','
     for db in ${IMMICH_PG_DATABASES}; do
-      log "Dumping ${IMMICH_PG_CONTAINER}/${db}"
-      docker exec "${IMMICH_PG_CONTAINER}" pg_dump -U "${IMMICH_PG_USER}" -d "${db}" 2>/dev/null | gzip > "${dest}/${IMMICH_PG_CONTAINER}_${db}.sql.gz"
+      dump_pg "${IMMICH_PG_CONTAINER}" "${IMMICH_PG_USER}" "${db}" "${dest}/${IMMICH_PG_CONTAINER}_${db}.sql.gz" || failed=1
     done
     IFS="$OLD_IFS"
   else
     log "WARNING: Container ${IMMICH_PG_CONTAINER} not running, skipping"
+    failed=1
   fi
+
+  return $failed
 }
 
 # --- Named Docker volumes ---
@@ -80,6 +108,7 @@ backup_volumes() {
 backup_configs() {
   local dest="$1/configs"
   mkdir -p "$dest"
+  local failed=0
 
   OLD_IFS="$IFS"; IFS=','
   for svc in ${BACKUP_SERVICES}; do
@@ -93,11 +122,16 @@ backup_configs() {
 
     for subdir in config data appdata cache letsencrypt esphome grafana influxdb influxdb2 telegraf adb-keys; do
       if [ -d "${svc_dir}/${subdir}" ]; then
-        tar czf "${dest}/${svc}/${subdir}.tar.gz" -C "${svc_dir}" "${subdir}" 2>/dev/null || true
+        if ! tar czf "${dest}/${svc}/${subdir}.tar.gz" -C "${svc_dir}" "${subdir}" 2>&1; then
+          log "ERROR: Failed to archive ${svc}/${subdir}"
+          failed=1
+        fi
       fi
     done
   done
   IFS="$OLD_IFS"
+
+  return $failed
 }
 
 # --- Env files ---

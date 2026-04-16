@@ -1,15 +1,11 @@
 services:
   backup:
-    image: rclone/rclone:latest
+    build: .
     container_name: backup
     restart: unless-stopped
     env_file:
       - path: .env
         required: true
-    entrypoint: /bin/sh
-    command:
-      - -c
-      - apk add --no-cache docker-cli curl jq rsync gzip tar > /dev/null 2>&1 && exec /scripts/backup.sh
     volumes:
       - ./scripts:/scripts:ro
       - ./rclone:/config/rclone:ro

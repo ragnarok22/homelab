@@ -28,6 +28,10 @@ set -eu
 
 HOMELAB_DIR="${HOMELAB_DIR:-/home/ragnarok/homelab}"
 
+# Database users (override via env or flags if not 'postgres')
+PG_USER="${PG_USER:-postgres}"
+IMMICH_PG_USER="${IMMICH_PG_USER:-postgres}"
+
 if [ $# -lt 1 ]; then
   echo "Usage: $0 <backup_path> [component]"
   echo "Components: all, databases, volumes, configs, env, list"
@@ -122,9 +126,18 @@ restore_databases() {
       continue
     fi
 
-    log "Restoring ${database} to ${container}..."
-    gunzip -c "$dump" | docker exec -i "${container}" psql -U postgres -d "${database}" 2>&1
-    log "Done: ${database}"
+    # Determine the correct psql user based on container
+    pg_user="${PG_USER}"
+    case "$container" in
+      *immich*) pg_user="${IMMICH_PG_USER}" ;;
+    esac
+
+    log "Restoring ${database} to ${container} (user: ${pg_user})..."
+    if gunzip -c "$dump" | docker exec -i "${container}" psql -U "${pg_user}" -d "${database}" 2>&1; then
+      log "Done: ${database}"
+    else
+      log "ERROR: Failed to restore ${database} to ${container}"
+    fi
   done
 }
 
@@ -154,11 +167,23 @@ restore_volumes() {
     fi
 
     log "Restoring volume: ${vol_name}..."
+    # Extract to a temp dir first, then swap contents only on success
+    archive_name=$(basename "$archive")
     docker run --rm \
       -v "${vol_name}:/volume" \
       -v "$(dirname "$archive"):/backup:ro" \
-      alpine:3.20 sh -c "rm -rf /volume/* && tar xzf /backup/$(basename "$archive") -C /volume"
-    log "Done: ${vol_name}"
+      alpine:3.20 sh -c "
+        mkdir -p /tmp/restore && \
+        tar xzf /backup/${archive_name} -C /tmp/restore && \
+        find /volume -mindepth 1 -delete 2>/dev/null; \
+        cp -a /tmp/restore/. /volume/ && \
+        rm -rf /tmp/restore
+      "
+    if [ $? -eq 0 ]; then
+      log "Done: ${vol_name}"
+    else
+      log "ERROR: Failed to restore volume ${vol_name} — volume may be in an inconsistent state"
+    fi
   done
 }
 

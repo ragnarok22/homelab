@@ -123,15 +123,18 @@ check_hdd() {
 }
 
 check_disk_space() {
-  log "Checking disk space"
+  log "Checking disk space (host filesystems via /host)"
 
-  df -P 2>/dev/null | tail -n +2 | while read -r fs blocks used avail pct mount; do
-    # Skip tmpfs, devtmpfs, etc.
-    case "$fs" in
-      tmpfs|devtmpfs|efivarfs|none|overlay) continue ;;
-    esac
+  # Read host's /proc/mounts to find real filesystems, then stat them via /host
+  grep -E '^/dev/' /host/proc/mounts 2>/dev/null | awk '{print $2}' | sort -u | while read -r mount; do
+    host_path="/host${mount}"
+    [ -d "$host_path" ] || continue
 
-    usage=$(echo "$pct" | tr -d '%')
+    line=$(df -P "$host_path" 2>/dev/null | tail -1) || continue
+    pct=$(echo "$line" | awk '{print $5}' | tr -d '%')
+    avail=$(echo "$line" | awk '{print $4}')
+    [ -n "$pct" ] || continue
+
     avail_h=$(echo "$avail" | awk '{
       if ($1 >= 1073741824) printf "%.1fT", $1/1073741824;
       else if ($1 >= 1048576) printf "%.1fG", $1/1048576;
@@ -139,12 +142,12 @@ check_disk_space() {
       else printf "%dK", $1
     }')
 
-    log "  ${mount}: ${pct} used (${avail_h} free)"
+    log "  ${mount}: ${pct}% used (${avail_h} free)"
 
-    if [ "$usage" -ge "${DISK_USAGE_CRITICAL}" ] 2>/dev/null; then
-      notify "Disk Space CRITICAL" "${mount} is ${pct} full (${avail_h} remaining)" "urgent" "warning"
-    elif [ "$usage" -ge "${DISK_USAGE_WARN}" ] 2>/dev/null; then
-      notify "Disk Space Warning" "${mount} is ${pct} full (${avail_h} remaining)" "high" "warning"
+    if [ "$pct" -ge "${DISK_USAGE_CRITICAL}" ] 2>/dev/null; then
+      notify "Disk Space CRITICAL" "${mount} is ${pct}% full (${avail_h} remaining)" "urgent" "warning"
+    elif [ "$pct" -ge "${DISK_USAGE_WARN}" ] 2>/dev/null; then
+      notify "Disk Space Warning" "${mount} is ${pct}% full (${avail_h} remaining)" "high" "warning"
     fi
   done
 }

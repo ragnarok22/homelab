@@ -135,7 +135,7 @@ restore_databases() {
     esac
 
     log "Restoring ${database} to ${container} (user: ${pg_user})..."
-    if gunzip -c "$dump" | docker exec -i "${container}" psql -U "${pg_user}" -d "${database}" 2>&1; then
+    if gunzip -c "$dump" | docker exec -i "${container}" psql -U "${pg_user}" -d "${database}" --set ON_ERROR_STOP=1 2>&1; then
       log "Done: ${database}"
     else
       log "ERROR: Failed to restore ${database} to ${container}"
@@ -239,7 +239,20 @@ restore_configs() {
       [ -f "$archive" ] || continue
       subdir=$(basename "$archive" .tar.gz)
       log "Restoring ${svc}/${subdir}..."
-      tar xzf "$archive" -C "$dest"
+
+      # Clean restore: remove existing subdir first so deleted files don't persist
+      if [ -d "${dest}/${subdir}" ]; then
+        mv "${dest}/${subdir}" "${dest}/${subdir}.restore_old"
+        if tar xzf "$archive" -C "$dest"; then
+          rm -rf "${dest}/${subdir}.restore_old"
+        else
+          log "ERROR: extraction failed for ${svc}/${subdir}, rolling back"
+          rm -rf "${dest}/${subdir}"
+          mv "${dest}/${subdir}.restore_old" "${dest}/${subdir}"
+        fi
+      else
+        tar xzf "$archive" -C "$dest"
+      fi
     done
     log "Done: ${svc}"
   done

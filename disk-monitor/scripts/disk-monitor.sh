@@ -5,10 +5,14 @@
 # SMART monitoring is handled by Scrutiny — this script covers
 # what Scrutiny does not: filesystem usage and kernel I/O errors.
 # Sends alerts via ntfy.sh with deduplication.
+#
+# Host filesystems are mounted individually in compose.yaml
+# and listed in MONITOR_MOUNTS (container_path:label pairs).
 
 set -eu
 
 STATE_DIR="/tmp/disk-monitor-state"
+DMESG_CURSOR_FILE="${STATE_DIR}/dmesg_cursor"
 mkdir -p "$STATE_DIR"
 
 log() {
@@ -64,13 +68,20 @@ clear_alert() {
 }
 
 check_disk_space() {
-  log "Checking disk space (host filesystems via /host)"
+  log "Checking disk space"
 
-  grep -E '^/dev/' /host/proc/mounts 2>/dev/null | awk '{print $2}' | sort -u | while read -r mount; do
-    host_path="/host${mount}"
-    [ -d "$host_path" ] || continue
+  # MONITOR_MOUNTS format: "container_path:label,container_path:label,..."
+  OLD_IFS="$IFS"; IFS=','
+  for entry in ${MONITOR_MOUNTS}; do
+    mnt_path="${entry%%:*}"
+    mnt_label="${entry#*:}"
 
-    line=$(df -P "$host_path" 2>/dev/null | tail -1) || continue
+    if [ ! -d "$mnt_path" ]; then
+      log "  WARNING: ${mnt_path} (${mnt_label}) not mounted"
+      continue
+    fi
+
+    line=$(df -P "$mnt_path" 2>/dev/null | tail -1) || continue
     pct=$(echo "$line" | awk '{print $5}' | tr -d '%')
     avail=$(echo "$line" | awk '{print $4}')
     [ -n "$pct" ] || continue
@@ -82,38 +93,53 @@ check_disk_space() {
       else printf "%dK", $1
     }')
 
-    log "  ${mount}: ${pct}% used (${avail_h} free)"
+    log "  ${mnt_label}: ${pct}% used (${avail_h} free)"
 
-    # Sanitize mount for use as state key
-    mount_key=$(printf '%s' "$mount" | tr '/' '_')
+    mount_key=$(printf '%s' "$mnt_label" | tr '/' '_')
 
     if [ "$pct" -ge "${DISK_USAGE_CRITICAL}" ] 2>/dev/null; then
-      notify_dedup "space_crit_${mount_key}" "Disk Space CRITICAL" "${mount} is ${pct}% full (${avail_h} remaining)" "urgent" "warning"
+      notify_dedup "space_crit_${mount_key}" "Disk Space CRITICAL" "${mnt_label} is ${pct}% full (${avail_h} remaining)" "urgent" "warning"
     elif [ "$pct" -ge "${DISK_USAGE_WARN}" ] 2>/dev/null; then
-      notify_dedup "space_warn_${mount_key}" "Disk Space Warning" "${mount} is ${pct}% full (${avail_h} remaining)" "high" "warning"
+      notify_dedup "space_warn_${mount_key}" "Disk Space Warning" "${mnt_label} is ${pct}% full (${avail_h} remaining)" "high" "warning"
       clear_alert "space_crit_${mount_key}"
     else
       clear_alert "space_warn_${mount_key}"
       clear_alert "space_crit_${mount_key}"
     fi
   done
+  IFS="$OLD_IFS"
 }
 
 check_dmesg_errors() {
-  log "Checking dmesg for I/O errors"
+  log "Checking dmesg for new I/O errors"
 
-  errors=$(dmesg 2>/dev/null | grep -i -E "I/O error|medium error|blk_update_request.*error|ata.*error|nvme.*error|nvme.*timeout|EXT4-fs error" | tail -5) || true
+  # Get total line count of matching errors
+  all_errors=$(dmesg 2>/dev/null | grep -i -E "I/O error|medium error|blk_update_request.*error|ata.*error|nvme.*error|nvme.*timeout|EXT4-fs error") || true
+  current_count=$(printf '%s' "$all_errors" | wc -l)
 
-  if [ -n "$errors" ]; then
-    notify_dedup "dmesg_io" "Disk I/O Errors Detected" "Recent kernel I/O errors:\n${errors}" "high" "warning"
+  # Load previous cursor (line count last seen)
+  prev_count=0
+  if [ -f "$DMESG_CURSOR_FILE" ]; then
+    prev_count=$(cat "$DMESG_CURSOR_FILE")
+  fi
+
+  if [ "$current_count" -gt "$prev_count" ] 2>/dev/null; then
+    # Only alert on the NEW errors since last check
+    new_count=$((current_count - prev_count))
+    new_errors=$(printf '%s' "$all_errors" | tail -n "$new_count")
+    notify_dedup "dmesg_io" "Disk I/O Errors Detected" "${new_count} new kernel I/O error(s):\n${new_errors}" "high" "warning"
   else
     clear_alert "dmesg_io"
   fi
+
+  # Save cursor
+  printf '%s' "$current_count" > "$DMESG_CURSOR_FILE"
 }
 
 # --- Main loop ---
 log "Disk monitor starting (interval: ${CHECK_INTERVAL}s)"
 log "SMART monitoring delegated to Scrutiny"
+log "Monitoring mounts: ${MONITOR_MOUNTS}"
 log "Thresholds: space>=${DISK_USAGE_WARN}%/${DISK_USAGE_CRITICAL}%"
 
 while true; do

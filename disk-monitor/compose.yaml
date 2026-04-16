@@ -7,11 +7,14 @@ services:
     env_file:
       - path: .env
         required: true
+    cap_add:
+      - SYSLOG  # required for dmesg access
     volumes:
       - ./scripts:/scripts:ro
-      - /:/host:ro
+      - /:/mnt/rootfs:ro
+      - /home:/mnt/home:ro
+      - /home/Data:/mnt/data:ro
       - alert-state:/tmp/disk-monitor-state
-    privileged: true  # required for dmesg access
     networks:
       - homelab
 

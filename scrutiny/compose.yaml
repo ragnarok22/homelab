@@ -4,8 +4,8 @@ services:
     container_name: scrutiny
     restart: unless-stopped
     cap_add:
-      - SYS_RAWIO
-      - SYS_ADMIN
+      - SYS_RAWIO  # SATA/SAS SMART access
+      - SYS_ADMIN  # required for NVMe SMART access
     env_file:
       - path: .env
         required: true
@@ -16,6 +16,8 @@ services:
       - ./config:/opt/scrutiny/config
       - ./influxdb:/opt/scrutiny/influxdb
       - /run/udev:/run/udev:ro
+    # Update this list if disks are replaced or added.
+    # Alternative: mount /dev:/dev for auto-discovery (broader access).
     devices:
       - /dev/sda:/dev/sda:r
       - /dev/nvme0:/dev/nvme0:r         # NVMe controller (character device, needed for SMART)

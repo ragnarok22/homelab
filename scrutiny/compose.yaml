@@ -9,9 +9,9 @@ services:
     env_file:
       - path: .env
         required: true
-    # ports:
+    ports:
       - 8080:8080 # Web UI / API
-    #   - 8086:8086 # InfluxDB admin
+      # - 8086:8086 # InfluxDB admin
     volumes:
       - ./config:/opt/scrutiny/config
       - ./influxdb:/opt/scrutiny/influxdb

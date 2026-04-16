@@ -182,14 +182,16 @@ backup_env_files() {
     cp "$envfile" "${dest}/${svc}.env"
   done
 
-  # If cloud backup is enabled, create an encrypted archive of env files
+  # If cloud backup is enabled, create an encrypted archive of env files.
+  # Write to parent dir first to avoid including the .enc in its own archive.
   if [ "${CLOUD_BACKUP_ENABLED}" = "true" ] && [ -n "${ENV_ENCRYPTION_KEY:-}" ]; then
+    local parent_dir
+    parent_dir=$(dirname "$dest")
     log "Encrypting env-files for cloud upload"
     tar cz -C "$dest" . | openssl enc -aes-256-cbc -salt -pbkdf2 \
       -pass "pass:${ENV_ENCRYPTION_KEY}" \
-      -out "${dest}/env-files.tar.gz.enc" 2>/dev/null
-    # Remove plaintext copies from the directory that gets synced to cloud
-    # The plaintext copies remain in the local backup (separate directory)
+      -out "${parent_dir}/env-files.tar.gz.enc" 2>/dev/null
+    mv "${parent_dir}/env-files.tar.gz.enc" "${dest}/env-files.tar.gz.enc"
   fi
 }
 
@@ -370,7 +372,7 @@ log "Schedule: daily at ${DAILY_BACKUP_TIME}, weekly on day ${WEEKLY_BACKUP_DAY}
 log "Retention: ${RETENTION_DAILY} daily, ${RETENTION_WEEKLY} weekly"
 log "Cloud: ${CLOUD_BACKUP_ENABLED}"
 
-LAST_RUN_FILE="/tmp/backup_last_run"
+LAST_RUN_FILE="${BACKUP_DIR}/.last_run"
 
 should_run_today() {
   local today

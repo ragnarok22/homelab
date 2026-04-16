@@ -70,10 +70,12 @@ clear_alert() {
 check_disk_space() {
   log "Checking disk space"
 
-  # Track devices seen in this run to detect when a dedicated mount
-  # has disappeared (its path falls back to the parent filesystem).
+  # On first run, record which device backs each label so we can detect
+  # when a previously-separate mount disappears. If two labels share
+  # a device from the start, that's the normal layout — no alert.
+  local baseline_file="${STATE_DIR}/device_baseline"
   local seen_devices=""
-  local device_labels=""
+  local current_mappings=""
 
   # MONITOR_MOUNTS format: "container_path:label,container_path:label,..."
   OLD_IFS="$IFS"; IFS=','
@@ -94,19 +96,28 @@ check_disk_space() {
 
     mount_key=$(printf '%s' "$mnt_label" | tr '/' '_')
 
-    # Check if this device was already seen under a different label.
-    # That means a dedicated filesystem is no longer mounted and the
-    # path fell back to a parent mount — alert instead of skipping.
-    case "$seen_devices" in
-      *"|${device}|"*)
-        prev_label=$(printf '%s' "$device_labels" | grep "^${device}=" | head -1 | cut -d= -f2-)
-        notify_dedup "mount_missing_${mount_key}" "Filesystem Missing" "$(printf '%s is on the same device as %s — dedicated mount may have disappeared' "$mnt_label" "$prev_label")" "high" "warning"
+    # Record baseline device mapping on first run
+    if [ ! -f "$baseline_file" ]; then
+      : # Will be written after the loop on first run
+    else
+      # Check if device changed from baseline (dedicated mount disappeared)
+      baseline_dev=$(grep "^${mnt_label}=" "$baseline_file" 2>/dev/null | cut -d= -f2-)
+      if [ -n "$baseline_dev" ] && [ "$baseline_dev" != "$device" ]; then
+        notify_dedup "mount_missing_${mount_key}" "Filesystem Missing" "$(printf '%s was on %s, now on %s — dedicated mount may have disappeared' "$mnt_label" "$baseline_dev" "$device")" "high" "warning"
         continue
-        ;;
+      fi
+      clear_alert "mount_missing_${mount_key}"
+    fi
+
+    # Collect mapping for baseline (written after loop on first run)
+    current_mappings="${current_mappings}${mnt_label}=${device}
+"
+
+    # Skip duplicate device alerts within the same run (same fs, different label)
+    case "$seen_devices" in
+      *"|${device}|"*) log "  ${mnt_label}: (same device as previous, skipping)"; continue ;;
     esac
-    clear_alert "mount_missing_${mount_key}"
     seen_devices="${seen_devices}|${device}|"
-    device_labels="$(printf '%s\n%s=%s' "$device_labels" "$device" "$mnt_label")"
 
     avail_h=$(echo "$avail" | awk '{
       if ($1 >= 1073741824) printf "%.1fT", $1/1073741824;
@@ -130,6 +141,12 @@ check_disk_space() {
     fi
   done
   IFS="$OLD_IFS"
+
+  # Write baseline on first run so future checks can detect device changes
+  if [ ! -f "$baseline_file" ] && [ -n "$current_mappings" ]; then
+    printf '%s' "$current_mappings" > "$baseline_file"
+    log "  Saved device baseline"
+  fi
 }
 
 check_dmesg_errors() {

@@ -21,8 +21,8 @@
 # To restore from Google Drive (if both disks failed):
 #   1. curl https://rclone.org/install.sh | sudo bash
 #   2. rclone config  (set up Google Drive remote)
-#   3. rclone ls gdrive:homelab-backups/daily/
-#   4. rclone copy gdrive:homelab-backups/daily/LATEST /tmp/restore/
+#   3. rclone lsd gdrive:homelab-backups/daily/  (list available backups)
+#   4. rclone copy gdrive:homelab-backups/daily/2026-04-16_030000 /tmp/restore/
 #   5. ./restore.sh /tmp/restore all
 
 set -eu
@@ -139,9 +139,9 @@ restore_databases() {
 
     log "Restoring ${database} to ${container} (user: ${pg_user})..."
 
-    # Decompress to a temp file first so a corrupt .sql.gz is caught
-    # before psql runs (pipe would mask gunzip failure).
-    local tmpsql="/tmp/restore_${container}_${database}.sql"
+    # Decompress to a temp file next to the dump (same filesystem, avoids /tmp limits)
+    # so a corrupt .sql.gz is caught before psql runs.
+    local tmpsql="${db_dir}/restore_${container}__${database}.sql"
     if ! gunzip -c "$dump" > "$tmpsql" 2>&1; then
       log "ERROR: Failed to decompress ${filename}"
       rm -f "$tmpsql"

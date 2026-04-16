@@ -101,6 +101,7 @@ list_backup() {
 # --- Restore databases ---
 restore_databases() {
   local db_dir="${BACKUP_PATH}/databases"
+  local failed=0
   if [ ! -d "$db_dir" ]; then
     log "No database backups found"
     return
@@ -140,13 +141,16 @@ restore_databases() {
       log "Done: ${database}"
     else
       log "ERROR: Failed to restore ${database} to ${container}"
+      failed=1
     fi
   done
+  return $failed
 }
 
 # --- Restore volumes ---
 restore_volumes() {
   local vol_dir="${BACKUP_PATH}/volumes"
+  local failed=0
   if [ ! -d "$vol_dir" ]; then
     log "No volume backups found"
     return
@@ -213,13 +217,16 @@ restore_volumes() {
       log "Done: ${vol_name}"
     else
       log "ERROR: Failed to restore volume ${vol_name}"
+      failed=1
     fi
   done
+  return $failed
 }
 
 # --- Restore configs ---
 restore_configs() {
   local cfg_dir="${BACKUP_PATH}/configs"
+  local failed=0
   if [ ! -d "$cfg_dir" ]; then
     log "No config backups found"
     return
@@ -246,6 +253,14 @@ restore_configs() {
     for archive in "${svc_dir}"*.tar.gz; do
       [ -f "$archive" ] || continue
       subdir=$(basename "$archive" .tar.gz)
+
+      # Guard against malformed archive names that produce an empty subdir
+      if [ -z "$subdir" ]; then
+        log "ERROR: skipping malformed archive name: $(basename "$archive")"
+        failed=1
+        continue
+      fi
+
       log "Restoring ${svc}/${subdir}..."
 
       # Clean restore: remove existing subdir first so deleted files don't persist
@@ -259,15 +274,18 @@ restore_configs() {
           log "ERROR: extraction failed for ${svc}/${subdir}, rolling back"
           rm -rf "${dest}/${subdir}"
           mv "${dest}/${subdir}.restore_old" "${dest}/${subdir}"
+          failed=1
         fi
       else
         if ! tar xzf "$archive" -C "$dest"; then
           log "ERROR: extraction failed for ${svc}/${subdir}"
+          failed=1
         fi
       fi
     done
     log "Done: ${svc}"
   done
+  return $failed
 }
 
 # --- Restore env files ---
@@ -313,16 +331,16 @@ case "$COMPONENT" in
     list_backup
     ;;
   databases)
-    restore_databases
+    restore_databases || exit 1
     ;;
   volumes)
-    restore_volumes
+    restore_volumes || exit 1
     ;;
   configs)
-    restore_configs
+    restore_configs || exit 1
     ;;
   env)
-    restore_env_files
+    restore_env_files || exit 1
     ;;
   all)
     echo "=== Full restore from ${BACKUP_PATH} ==="
@@ -334,10 +352,15 @@ case "$COMPONENT" in
       echo "Aborted."
       exit 0
     fi
-    restore_databases
-    restore_volumes
-    restore_configs
-    restore_env_files
+    rc=0
+    restore_databases || rc=1
+    restore_volumes || rc=1
+    restore_configs || rc=1
+    restore_env_files || rc=1
+    if [ "$rc" -ne 0 ]; then
+      log "=== Full restore completed with ERRORS (see above) ==="
+      exit 1
+    fi
     log "=== Full restore complete ==="
     ;;
   *)

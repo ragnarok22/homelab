@@ -70,6 +70,10 @@ clear_alert() {
 check_disk_space() {
   log "Checking disk space"
 
+  # Track which devices we've already reported on to avoid duplicate alerts
+  # when multiple mount labels point to the same underlying filesystem
+  local seen_devices=""
+
   # MONITOR_MOUNTS format: "container_path:label,container_path:label,..."
   OLD_IFS="$IFS"; IFS=','
   for entry in ${MONITOR_MOUNTS}; do
@@ -82,9 +86,16 @@ check_disk_space() {
     fi
 
     line=$(df -P "$mnt_path" 2>/dev/null | tail -1) || continue
+    device=$(echo "$line" | awk '{print $1}')
     pct=$(echo "$line" | awk '{print $5}' | tr -d '%')
     avail=$(echo "$line" | awk '{print $4}')
     [ -n "$pct" ] || continue
+
+    # Skip if we already reported this device under a different label
+    case "$seen_devices" in
+      *"|${device}|"*) log "  ${mnt_label}: (same device as previous, skipping)"; continue ;;
+    esac
+    seen_devices="${seen_devices}|${device}|"
 
     avail_h=$(echo "$avail" | awk '{
       if ($1 >= 1073741824) printf "%.1fT", $1/1073741824;
@@ -113,10 +124,20 @@ check_disk_space() {
 check_dmesg_errors() {
   log "Checking dmesg for new I/O errors"
 
-  # Write matching errors to a temp file to get an accurate line count
-  # (command substitution strips trailing newlines, causing miscounts)
   local tmpfile="${STATE_DIR}/dmesg_tmp"
-  dmesg 2>/dev/null | grep -i -E "I/O error|medium error|blk_update_request.*error|ata.*error|nvme.*error|nvme.*timeout|EXT4-fs error" > "$tmpfile" 2>/dev/null || true
+  local dmesg_err="${STATE_DIR}/dmesg_err"
+
+  # Test that dmesg is accessible before relying on its output
+  if ! dmesg > /dev/null 2>"$dmesg_err"; then
+    notify_dedup "dmesg_access" "Disk Monitor Warning" "Cannot read kernel ring buffer (dmesg). I/O error monitoring is disabled.\n$(cat "$dmesg_err")" "high" "warning"
+    rm -f "$dmesg_err"
+    return
+  fi
+  rm -f "$dmesg_err"
+  clear_alert "dmesg_access"
+
+  # Write matching errors to a temp file to get an accurate line count
+  dmesg | grep -i -E "I/O error|medium error|blk_update_request.*error|ata.*error|nvme.*error|nvme.*timeout|EXT4-fs error" > "$tmpfile" 2>/dev/null || true
   current_count=$(wc -l < "$tmpfile")
 
   # Load previous cursor (line count last seen)

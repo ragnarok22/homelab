@@ -390,8 +390,8 @@ mark_ran_today() {
 while true; do
   current_hhmm=$(date '+%H:%M')
   # Convert HH:MM to minutes since midnight for comparison
-  cur_mins=$(( $(printf '%d' "$(echo "$current_hhmm" | cut -d: -f1)") * 60 + $(printf '%d' "$(echo "$current_hhmm" | cut -d: -f2)") ))
-  tgt_mins=$(( $(printf '%d' "$(echo "${DAILY_BACKUP_TIME}" | cut -d: -f1)") * 60 + $(printf '%d' "$(echo "${DAILY_BACKUP_TIME}" | cut -d: -f2)") ))
+  cur_mins=$(( $(echo "$current_hhmm" | cut -d: -f1 | sed 's/^0//') * 60 + $(echo "$current_hhmm" | cut -d: -f2 | sed 's/^0//') ))
+  tgt_mins=$(( $(echo "${DAILY_BACKUP_TIME}" | cut -d: -f1 | sed 's/^0//') * 60 + $(echo "${DAILY_BACKUP_TIME}" | cut -d: -f2 | sed 's/^0//') ))
 
   # Run if we're at or past the target time and haven't run today yet
   if [ "$cur_mins" -ge "$tgt_mins" ] && should_run_today; then

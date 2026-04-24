@@ -7,6 +7,7 @@ mqtt:
 
 serial:
   port: /dev/ttyUSB0
+  adapter: ember
 
 frontend:
   port: 8080

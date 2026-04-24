@@ -6,6 +6,9 @@
 
 # home-assistant service runtime data
 home-assistant/mosquitto/passwd
+home-assistant/zigbee2mqtt/*.db
+home-assistant/zigbee2mqtt/*.json
+home-assistant/zigbee2mqtt/log/
 home-assistant/adb-keys/
 home-assistant/esphome/
 home-assistant/grafana/

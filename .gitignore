@@ -5,6 +5,7 @@
 **/downloads/
 
 # home-assistant service runtime data
+home-assistant/mosquitto/passwd
 home-assistant/adb-keys/
 home-assistant/esphome/
 home-assistant/grafana/

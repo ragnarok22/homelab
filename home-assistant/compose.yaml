@@ -9,6 +9,8 @@ services:
       - ./mosquitto/passwd:/mosquitto/config/passwd
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
+    networks:
+      - homelab
     restart: unless-stopped
 
   zigbee2mqtt:
@@ -33,6 +35,8 @@ services:
       - ./zigbee2mqtt:/app/data
     devices:
       - ${ZIGBEE_DEVICE}:/dev/ttyUSB0
+    networks:
+      - homelab
     restart: unless-stopped
 
   homeassistant:
@@ -123,4 +127,8 @@ services:
       - /etc:/host/etc:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
+
+networks:
+  homelab:
+    external: true
 

@@ -1,4 +1,32 @@
 services:
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    ports:
+      - 1883:1883
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    restart: unless-stopped
+
+  zigbee2mqtt:
+    image: koenkk/zigbee2mqtt:latest
+    container_name: zigbee2mqtt
+    depends_on:
+      - mosquitto
+    ports:
+      - 8080:8080
+    environment:
+      - TZ=${TZ}
+      - ZIGBEE2MQTT_CONFIG_MQTT_USER=${MQTT_USER}
+      - ZIGBEE2MQTT_CONFIG_MQTT_PASSWORD=${MQTT_PASSWORD}
+    volumes:
+      - ./zigbee2mqtt:/app/data
+    devices:
+      - ${ZIGBEE_DEVICE}:/dev/ttyUSB0
+    restart: unless-stopped
+
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant:stable
     container_name: homeassistant

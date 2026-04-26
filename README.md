@@ -39,6 +39,7 @@ A collection of self-hosted services running in Docker containers for my home la
 - **[Home Assistant](https://www.home-assistant.io/)** - Open source home automation platform that puts local control and privacy first
 
 ### 💰 Finance & Personal Tools
+- **[Invoice Ninja](https://invoiceninja.com/)** - Self-hosted invoicing, billing, and payment platform for freelancers and businesses
 - **[Maybe](https://github.com/maybe-finance/maybe)** *(deprecated)* - Personal finance and wealth management application
 
 ### 🔧 Productivity & Automation

@@ -18,6 +18,7 @@ include:
     - scrutiny/compose.yaml
     - homarr/compose.yaml
     - excalidraw/compose.yaml
+    - invoice-ninja/compose.yaml
     - home-assistant/compose.yaml
     - immich/compose.yaml
     - jellyfin/compose.yaml

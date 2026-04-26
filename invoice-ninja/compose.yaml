@@ -1,0 +1,52 @@
+services:
+  invoice-ninja-nginx:
+    image: nginx:latest
+    container_name: invoice-ninja-nginx
+    restart: unless-stopped
+    # ports:
+    #   - "9900:80"
+    volumes:
+      - ./nginx/in-vhost.conf:/etc/nginx/conf.d/in-vhost.conf:ro
+      - invoice_ninja_public:/var/www/app/public:ro
+    depends_on:
+      - invoice-ninja-app
+    networks:
+      - homelab
+
+  invoice-ninja-app:
+    image: invoiceninja/invoiceninja-debian:5
+    container_name: invoice-ninja-app
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./php/php.ini:/usr/local/etc/php/php.ini:ro
+      - ./php/php-cli.ini:/usr/local/etc/php/php-cli.ini:ro
+      - invoice_ninja_public:/var/www/app/public:rw
+      - invoice_ninja_storage:/var/www/app/storage:rw
+    depends_on:
+      - invoice-ninja-db
+    networks:
+      - homelab
+
+  invoice-ninja-db:
+    image: mysql:8
+    container_name: invoice-ninja-db
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - invoice_ninja_db:/var/lib/mysql
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true
+
+volumes:
+  invoice_ninja_public:
+  invoice_ninja_storage:
+  invoice_ninja_db:

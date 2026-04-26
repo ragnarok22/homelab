@@ -7,7 +7,7 @@ services:
     #   - "9900:80"
     volumes:
       - ./nginx/in-vhost.conf:/etc/nginx/conf.d/in-vhost.conf:ro
-      - invoice_ninja_public:/var/www/app/public:ro
+      - invoice_ninja_public:/var/www/html/public:ro
     depends_on:
       - invoice-ninja-app
     networks:
@@ -23,8 +23,8 @@ services:
     volumes:
       - ./php/php.ini:/usr/local/etc/php/php.ini:ro
       - ./php/php-cli.ini:/usr/local/etc/php/php-cli.ini:ro
-      - invoice_ninja_public:/var/www/app/public:rw
-      - invoice_ninja_storage:/var/www/app/storage:rw
+      - invoice_ninja_public:/var/www/html/public:rw
+      - invoice_ninja_storage:/var/www/html/storage:rw
     depends_on:
       - invoice-ninja-db
     networks:

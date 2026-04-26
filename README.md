@@ -13,6 +13,7 @@ A collection of self-hosted services running in Docker containers for my home la
 - **[Pi-hole](https://pi-hole.net/)** - Network-wide ad blocking DNS server that improves network performance by blocking ads before they download
 - **[Nginx Proxy Manager](https://github.com/nginx-proxy/nginx-proxy)** - Automated nginx proxy for Docker containers with SSL certificate management
 - **[Watchtower](https://github.com/containrrr/watchtower)** - Automatically updates running Docker containers to the latest available image
+- **Backup** - Custom scheduled backup service running pg_dump, Docker volume snapshots, and config backups with optional rclone sync to Google Drive
 
 ### 📊 Monitoring & Management
 - **[Homarr](https://homarr.dev/)** - Customizable browser's home page to organize your self-hosted services
@@ -20,6 +21,7 @@ A collection of self-hosted services running in Docker containers for my home la
 - **[Scrutiny](https://github.com/AnalogJ/scrutiny)** - S.M.A.R.T. drive health dashboard with historical metrics and failure-focused alerts
 - **[pgAdmin](https://www.pgadmin.org/)** - Management tool for PostgreSQL databases
 - **[Unifi Network Application](https://ui.com/)** *(deprecated)* - Enterprise network management platform for Unifi devices
+- **Disk Monitor** - Custom service that checks disk space usage and kernel I/O errors on a configurable interval and sends ntfy alerts
 
 ### 🎬 Media Management
 - **[Jellyfin](https://jellyfin.org/)** - Free Software Media System that puts you in control of managing and streaming your media

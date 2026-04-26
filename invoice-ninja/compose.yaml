@@ -31,7 +31,7 @@ services:
       - homelab
 
   invoice-ninja-db:
-    image: mysql:8
+    image: mysql:9
     container_name: invoice-ninja-db
     restart: unless-stopped
     env_file:

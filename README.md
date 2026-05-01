@@ -30,7 +30,6 @@ A collection of self-hosted services running on Proxmox VE. The stack is split a
 - **[Jellyseerr](https://github.com/Fallenbagel/jellyseerr)** - Request management and media discovery tool for Jellyfin
 - **[Radarr](https://radarr.video/)** - Movie collection manager that works with various download clients
 - **[Sonarr](https://sonarr.tv/)** - TV series management and automation tool
-- **[Readarr](https://readarr.com/)** - Book collection manager and automation tool
 - **[Prowlarr](https://github.com/Prowlarr/Prowlarr)** - Indexer manager/proxy for various download clients
 - **[qBittorrent](https://www.qbittorrent.org/)** - Free and open-source BitTorrent client
 - **[Suwayomi](https://github.com/Suwayomi/Suwayomi-Server)** - Free and open source manga reader server that runs extensions

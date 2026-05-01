@@ -30,3 +30,4 @@ include:
     - suwayomi/compose.yaml
     - watchtower/compose.yaml
     # - backup/compose.yaml
+    - duplicati/compose.yaml

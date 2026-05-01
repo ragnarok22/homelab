@@ -1,0 +1,17 @@
+services:
+  duplicati:
+    image: lscr.io/linuxserver/duplicati:latest
+    container_name: duplicati
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./config:/config
+      - /home/Data:/source:ro
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

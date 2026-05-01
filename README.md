@@ -41,6 +41,8 @@ A collection of self-hosted services running on Proxmox VE. The stack is split a
 ### 🏠 Home Automation
 - **[Home Assistant](https://www.home-assistant.io/)** - Runs as HAOS VM on Proxmox (`192.168.100.101`), installed via the [community HAOS VM script](https://community-scripts.org/scripts/haos-vm)
 
+- **[Duplicati](https://duplicati.com/)** - Backup software to store encrypted backups online — configured for Google Drive offsite sync
+
 ### 💰 Finance & Personal Tools
 - **[Invoice Ninja](https://invoiceninja.com/)** - Self-hosted invoicing, billing, and payment platform for freelancers and businesses
 

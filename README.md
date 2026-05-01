@@ -4,13 +4,17 @@
 [![License](https://img.shields.io/github/license/ragnarok22/homelab)](https://github.com/ragnarok22/homelab/blob/main/LICENSE)
 [![GitHub last commit](https://img.shields.io/github/last-commit/ragnarok22/homelab)](https://github.com/ragnarok22/homelab/commits/main)
 
-A collection of self-hosted services running in Docker containers for my home lab setup.
+A collection of self-hosted services running on Proxmox VE. The stack is split across three units:
+
+- **Proxmox VE host** (`192.168.100.99`) — hypervisor, installed with the [community post-install script](https://community-scripts.org/scripts/post-pve-install)
+- **HAOS VM** (`192.168.100.101`) — Home Assistant OS, installed with the [community HAOS VM script](https://community-scripts.org/scripts/haos-vm)
+- **Pi-hole LXC** (`192.168.100.102`) — network-wide DNS with Unbound, installed with the [community Pi-hole script](https://community-scripts.org/scripts/pihole)
+- **Docker LXC** (`192.168.100.100`) — all services below, privileged LXC with iGPU and 2TB drive passthrough
 
 ## 📋 Services
 
 ### 🏠 Core Infrastructure
 - **[Cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)** - Cloudflare Tunnel client that creates encrypted tunnels to expose local services securely without opening inbound ports
-- **[Pi-hole](https://pi-hole.net/)** - Network-wide ad blocking DNS server that improves network performance by blocking ads before they download
 - **[Nginx Proxy Manager](https://github.com/nginx-proxy/nginx-proxy)** - Automated nginx proxy for Docker containers with SSL certificate management
 - **[Watchtower](https://github.com/containrrr/watchtower)** - Automatically updates running Docker containers to the latest available image
 - **Backup** - Custom scheduled backup service running pg_dump, Docker volume snapshots, and config backups with optional rclone sync to Google Drive
@@ -20,8 +24,6 @@ A collection of self-hosted services running in Docker containers for my home la
 - **[Dash](https://github.com/MauriceNino/dashdot)** - A simple, modern server dashboard for monitoring system performance
 - **[Scrutiny](https://github.com/AnalogJ/scrutiny)** - S.M.A.R.T. drive health dashboard with historical metrics and failure-focused alerts
 - **[pgAdmin](https://www.pgadmin.org/)** - Management tool for PostgreSQL databases
-- **[Unifi Network Application](https://ui.com/)** *(deprecated)* - Enterprise network management platform for Unifi devices
-- **Disk Monitor** - Custom service that checks disk space usage and kernel I/O errors on a configurable interval and sends ntfy alerts
 
 ### 🎬 Media Management
 - **[Jellyfin](https://jellyfin.org/)** - Free Software Media System that puts you in control of managing and streaming your media
@@ -38,11 +40,10 @@ A collection of self-hosted services running in Docker containers for my home la
 - **[Nextcloud](https://nextcloud.com/)** - Self-hosted productivity platform for file sync, sharing, and collaboration
 
 ### 🏠 Home Automation
-- **[Home Assistant](https://www.home-assistant.io/)** - Open source home automation platform that puts local control and privacy first
+- **[Home Assistant](https://www.home-assistant.io/)** - Runs as HAOS VM on Proxmox (`192.168.100.101`), installed via the [community HAOS VM script](https://community-scripts.org/scripts/haos-vm)
 
 ### 💰 Finance & Personal Tools
 - **[Invoice Ninja](https://invoiceninja.com/)** - Self-hosted invoicing, billing, and payment platform for freelancers and businesses
-- **[Maybe](https://github.com/maybe-finance/maybe)** *(deprecated)* - Personal finance and wealth management application
 
 ### 🔧 Productivity & Automation
 - **[n8n](https://n8n.io/)** - Workflow automation tool with a focus on providing a self-hosted alternative to Zapier

@@ -4,6 +4,12 @@ services:
     container_name: jellyfin
     restart: unless-stopped
     user: 1000:1000
+    group_add:
+      - "44"   # video
+      - "992"  # render
+    devices:
+      - /dev/dri/card1:/dev/dri/card1
+      - /dev/dri/renderD128:/dev/dri/renderD128
     volumes:
       - ./config:/config
       - ./cache:/cache

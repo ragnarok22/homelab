@@ -8,7 +8,8 @@ services:
         required: true
     volumes:
       - ./config:/config
-      - /home/Data:/source:ro
+      - /home/Data:/source/data:ro
+      - /root/homelab:/source/homelab:ro
     networks:
       - homelab
 

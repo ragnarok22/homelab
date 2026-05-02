@@ -14,7 +14,7 @@ include:
     - pgadmin/compose.yaml
     - nginx-manager/compose.yaml
     - dash/compose.yaml
-    # - scrutiny/compose.yaml
+    - scrutiny/compose.yaml
     - homarr/compose.yaml
     - excalidraw/compose.yaml
     - invoice-ninja/compose.yaml

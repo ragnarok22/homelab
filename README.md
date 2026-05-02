@@ -92,6 +92,8 @@ docker compose down
 ```
 
 #### Validate Compose Configuration
+After all required local `.env` files exist:
+
 ```bash
 docker compose config
 ```

@@ -47,7 +47,7 @@ dump_pg "postgres"        "postgres" "n8n"
 # --- MySQL dump (Invoice Ninja) ---
 log "Dumping mysql: invoice-ninja-db/ninja"
 tmp="${DEST}/databases/invoice-ninja-db__ninja.sql.gz.tmp"
-if docker exec invoice-ninja-db sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" ninja' | gzip > "$tmp" && [ -s "$tmp" ]; then
+if docker exec invoice-ninja-db sh -c 'mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction --set-gtid-purged=OFF ninja' | gzip > "$tmp" && [ -s "$tmp" ]; then
   mv "$tmp" "${DEST}/databases/invoice-ninja-db__ninja.sql.gz"
 else
   rm -f "$tmp"

@@ -23,3 +23,6 @@ immich/postgres/
 
 # misc
 info.txt
+
+# Personal files and config
+custom/*.md

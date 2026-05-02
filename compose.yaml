@@ -29,5 +29,4 @@ include:
     - sonarr/compose.yaml
     - suwayomi/compose.yaml
     - watchtower/compose.yaml
-    # - backup/compose.yaml
     - duplicati/compose.yaml

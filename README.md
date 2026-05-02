@@ -17,7 +17,6 @@ A collection of self-hosted services running on Proxmox VE. The stack is split a
 - **[Cloudflared](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)** - Cloudflare Tunnel client that creates encrypted tunnels to expose local services securely without opening inbound ports
 - **[Nginx Proxy Manager](https://github.com/nginx-proxy/nginx-proxy)** - Automated nginx proxy for Docker containers with SSL certificate management
 - **[Watchtower](https://github.com/containrrr/watchtower)** - Automatically updates running Docker containers to the latest available image
-- **Backup** - Custom scheduled backup service running pg_dump, Docker volume snapshots, and config backups with optional rclone sync to Google Drive
 
 ### 📊 Monitoring & Management
 - **[Homarr](https://homarr.dev/)** - Customizable browser's home page to organize your self-hosted services

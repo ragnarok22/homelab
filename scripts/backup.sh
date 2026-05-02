@@ -15,15 +15,72 @@ set -euo pipefail
 BACKUP_ROOT="/home/Data/backup_homelab"
 HOMELAB_DIR="/root/homelab"
 KEEP_DAYS=7
+ALERTS_ENV="${ALERTS_ENV:-${HOMELAB_DIR}/scripts/alerts.env}"
 
 DATE=$(date '+%Y-%m-%d_%H%M%S')
 DEST="${BACKUP_ROOT}/${DATE}"
+ERRORS=0
 
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') [backup] $*"; }
 
+if [ -f "$ALERTS_ENV" ]; then
+  # shellcheck disable=SC1090
+  . "$ALERTS_ENV"
+fi
+
+notify_ntfy() {
+  local title="$1" priority="$2" tags="$3" message="$4"
+
+  if [ -z "${NTFY_URL:-}" ] || [ -z "${NTFY_TOPIC:-}" ]; then
+    return 0
+  fi
+  if ! command -v curl >/dev/null 2>&1; then
+    log "WARNING: curl not found; cannot send ntfy notification"
+    return 0
+  fi
+
+  local endpoint="${NTFY_URL%/}/${NTFY_TOPIC}"
+  local curl_args=(-fsS -m "${NTFY_TIMEOUT:-10}" -H "Title: ${title}" -H "Priority: ${priority}" -H "Tags: ${tags}")
+  if [ -n "${NTFY_TOKEN:-}" ]; then
+    curl_args+=(-H "Authorization: Bearer ${NTFY_TOKEN}")
+  fi
+
+  if ! curl "${curl_args[@]}" --data-binary "$message" "$endpoint" >/dev/null 2>&1; then
+    log "WARNING: failed to send ntfy notification"
+  fi
+}
+
+push_kuma() {
+  local status="$1" msg="$2"
+
+  if [ -z "${KUMA_BACKUP_PUSH_URL:-}" ] || ! command -v curl >/dev/null 2>&1; then
+    return 0
+  fi
+
+  curl -fsS -m "${KUMA_TIMEOUT:-10}" "${KUMA_BACKUP_PUSH_URL}?status=${status}&msg=${msg}&ping=" >/dev/null 2>&1 || \
+    log "WARNING: failed to push backup status to Uptime Kuma"
+}
+
+finish() {
+  local exit_code=$?
+
+  if [ "$exit_code" -ne 0 ]; then
+    push_kuma down backup-failed
+    notify_ntfy "Backup failed" "urgent" "warning" "Homelab backup failed on $(hostname). Destination: ${DEST}. Errors recorded: ${ERRORS}."
+    exit "$exit_code"
+  fi
+
+  push_kuma up backup-ok
+  if [ "${NTFY_NOTIFY_SUCCESS:-false}" = "true" ]; then
+    notify_ntfy "Backup complete" "default" "white_check_mark" "Homelab backup completed on $(hostname). Destination: ${DEST}."
+  fi
+  exit 0
+}
+
+trap finish EXIT
+
 mkdir -p "$DEST"
 log "=== Starting backup: ${DEST} ==="
-ERRORS=0
 
 # --- PostgreSQL dumps ---
 dump_pg() {
@@ -57,7 +114,7 @@ fi
 
 # --- Service config/data dirs ---
 mkdir -p "${DEST}/configs"
-SERVICES="cloudflared dash duplicati excalidraw homarr immich invoice-ninja jellyfin jellyseerr n8n nextcloud nginx-manager pgadmin prowlarr qbittorrents radarr sonarr suwayomi watchtower"
+SERVICES="cloudflared dash diun duplicati excalidraw homarr immich invoice-ninja jellyfin jellyseerr n8n nextcloud nginx-manager ntfy pgadmin prowlarr qbittorrents radarr sonarr suwayomi uptime-kuma watchtower"
 for svc in $SERVICES; do
   svc_dir="${HOMELAB_DIR}/${svc}"
   [ -d "$svc_dir" ] || continue

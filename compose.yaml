@@ -15,6 +15,9 @@ include:
     - nginx-manager/compose.yaml
     - dash/compose.yaml
     - scrutiny/compose.yaml
+    - ntfy/compose.yaml
+    - uptime-kuma/compose.yaml
+    - diun/compose.yaml
     - homarr/compose.yaml
     - excalidraw/compose.yaml
     - invoice-ninja/compose.yaml

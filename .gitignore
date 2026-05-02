@@ -23,6 +23,7 @@ immich/postgres/
 
 # misc
 info.txt
+scripts/alerts.env
 
 # Personal files and config
 custom/*.md

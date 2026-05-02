@@ -34,6 +34,9 @@ The Docker LXC receives the Intel iGPU (`/dev/dri`) for Jellyfin hardware transc
 - **[Homarr](https://homarr.dev/)** - Customizable browser's home page to organize your self-hosted services
 - **[Dash](https://github.com/MauriceNino/dashdot)** - A simple, modern server dashboard for monitoring system performance
 - **[Scrutiny](https://github.com/AnalogJ/scrutiny)** - S.M.A.R.T. drive health dashboard with historical metrics and failure-focused alerts
+- **[ntfy](https://ntfy.sh/)** - Self-hosted push notifications for homelab alerts
+- **[Uptime Kuma](https://uptime.kuma.pet/)** - Uptime, Docker container, and push-based service monitoring
+- **[Diun](https://crazymax.dev/diun/)** - Docker image update notifications
 - **[pgAdmin](https://www.pgadmin.org/)** - Management tool for PostgreSQL databases
 
 ### 🎬 Media Management
@@ -121,6 +124,41 @@ The deployment uses three backup layers:
 3. **Duplicati offsite sync** — Duplicati uploads the local backup output and the Immich photo library to Google Drive.
 
 Home Assistant also uses its Google Drive Backup add-on for HA-native backups.
+
+## 🚨 Alerts
+
+The alerting stack uses **ntfy** as the notification target, **Uptime Kuma** for uptime/container/push monitors, **Diun** for pending Docker image updates, and **Scrutiny** for SMART health.
+
+Create local env files before starting the services:
+
+```bash
+cp ntfy/example.env ntfy/.env
+cp uptime-kuma/example.env uptime-kuma/.env
+cp diun/example.env diun/.env
+cp scripts/alerts.env.example scripts/alerts.env
+```
+
+Update `ntfy/.env` with the public ntfy URL you expose through Nginx Proxy Manager. The Compose service does not publish a host port by default, so proxy `ntfy` to port `80` on the `homelab` Docker network.
+
+Update `diun/.env` if you change the ntfy topic or enable ntfy authentication. By default, Diun checks all running Docker containers every 6 hours and notifies `homelab-alerts` through the internal `http://ntfy` endpoint.
+
+Configure Uptime Kuma through its web UI, then add these monitors:
+
+- HTTP monitors for public Cloudflare Tunnel URLs.
+- Docker monitors for critical containers, using the mounted Docker socket.
+- Push monitor for `scripts/backup.sh`.
+- Push monitor for `scripts/check-disk.sh`.
+
+After creating the Push monitors, add their URLs to `scripts/alerts.env` as `KUMA_BACKUP_PUSH_URL` and `KUMA_DISK_PUSH_URL`. The backup script sends failure alerts automatically and reports success to Kuma. The disk script sends a ntfy alert when usage crosses `DISK_ALERT_THRESHOLD` and a recovery notification when it goes below the threshold.
+
+Example cron entries inside the Docker LXC:
+
+```cron
+0 1 * * * /root/homelab/scripts/backup.sh >> /var/log/homelab-backup.log 2>&1
+*/30 * * * * /root/homelab/scripts/check-disk.sh >> /var/log/homelab-disk.log 2>&1
+```
+
+For SMART alerts, use Scrutiny as the source of truth and configure its notification destination to the same ntfy topic where supported by your Scrutiny config/version.
 
 ## ⚙️ Configuration
 

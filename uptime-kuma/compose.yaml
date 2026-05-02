@@ -1,0 +1,19 @@
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    # ports:
+    #   - 3001:3001 # Web UI — access via reverse proxy instead
+    networks:
+      - homelab
+
+networks:
+  homelab:
+    external: true

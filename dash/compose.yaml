@@ -13,6 +13,7 @@ services:
       - DASHDOT_SHOW_HOST=true
       - DASHDOT_ACCEPT_OOKLA_EULA=true
       - DASHDOT_USER_NETWORK_INTERFACE=eth0
+      - DASHDOT_FS_DEVICE_FILTER=nvme0n1
     # ports:
     #   - 3001:3001
     volumes:

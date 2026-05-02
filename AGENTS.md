@@ -76,3 +76,6 @@
 - `compose.yaml`: root include list for all services
 - `README.md`: setup and service documentation
 - `.gitignore`: excludes runtime config and state (`**/.env`, `**/config/`, `**/cache/`)
+
+## Personal Configuration Reference
+If you are an AI assistant working in a fork or personal deployment of this repo, check for `custom/HOMELAB.md`. This file (gitignored, never committed) may contain instance-specific details such as IP addresses, domain names, hardware specs, and backup configuration. It does not exist in the public repo — each user can create their own by running an AI assistant and asking it to document their setup.

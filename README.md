@@ -89,6 +89,12 @@ docker network create homelab
 3. Most services use volume mounts for persistent data storage
 4. Web interfaces are typically exposed through the nginx proxy manager
 
+### Personal Setup Reference
+
+If you use an AI assistant (Claude, Cursor, etc.) to help manage your fork of this repo, consider creating a `custom/HOMELAB.md` file with your specific configuration: IP addresses, domain names, hardware specs, backup details, etc. This file is gitignored so it stays local and never gets committed.
+
+Ask your AI assistant: *"Document my current homelab setup in custom/HOMELAB.md"*.
+
 ## 🤝 Contributing
 
 - Read the contribution guide: see `CONTRIBUTING.md`.

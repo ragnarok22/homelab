@@ -160,6 +160,15 @@ Example cron entries inside the Docker LXC:
 
 For SMART alerts, use Scrutiny as the source of truth and configure its notification destination to the same ntfy topic where supported by your Scrutiny config/version.
 
+Uptime Kuma uses the `louislam/uptime-kuma:2` Docker tag. When upgrading an existing v1 deployment, stop the service and back up `uptime-kuma/data` before starting v2 because the first boot migrates the SQLite database and must not be interrupted:
+
+```bash
+docker compose -f uptime-kuma/compose.yaml down
+tar czf /root/uptime-kuma-data-before-v2.tar.gz uptime-kuma/data
+docker compose -f uptime-kuma/compose.yaml up -d
+docker compose -f uptime-kuma/compose.yaml logs -f
+```
+
 ## ⚙️ Configuration
 
 1. Copy `example.env` to `.env` and configure the required variables

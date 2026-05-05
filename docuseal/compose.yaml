@@ -1,0 +1,44 @@
+services:
+  docuseal:
+    image: docuseal/docuseal:latest
+    container_name: docuseal
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - docuseal_data:/data/docuseal
+    # ports:
+    #   - "3000:3000"
+    depends_on:
+      docuseal-postgres:
+        condition: service_healthy
+    networks:
+      - homelab
+      - docuseal-internal
+
+  docuseal-postgres:
+    image: postgres:18
+    container_name: docuseal-postgres
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - docuseal_postgres:/var/lib/postgresql/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - docuseal-internal
+
+networks:
+  homelab:
+    external: true
+  docuseal-internal:
+
+volumes:
+  docuseal_data:
+  docuseal_postgres:

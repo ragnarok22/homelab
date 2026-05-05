@@ -62,6 +62,7 @@ The Docker LXC receives the Intel iGPU (`/dev/dri`) for Jellyfin hardware transc
 - **[n8n](https://n8n.io/)** - Workflow automation tool with a focus on providing a self-hosted alternative to Zapier
 - **[Excalidraw](https://excalidraw.com/)** - Virtual whiteboard for sketching hand-drawn like diagrams
 - **[Postiz](https://postiz.com/)** - Social media scheduling and publishing platform with provider integrations
+- **[DocuSeal](https://www.docuseal.com/)** - Self-hosted document signing platform with persistent PostgreSQL-backed storage
 
 ## 🚀 Getting Started
 

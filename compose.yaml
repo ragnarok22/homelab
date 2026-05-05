@@ -21,6 +21,7 @@ include:
     - homarr/compose.yaml
     - excalidraw/compose.yaml
     - postiz/compose.yaml
+    - docuseal/compose.yaml
     - invoice-ninja/compose.yaml
     - immich/compose.yaml
     - jellyfin/compose.yaml

@@ -20,6 +20,7 @@ include:
     - diun/compose.yaml
     - homarr/compose.yaml
     - excalidraw/compose.yaml
+    - postiz/compose.yaml
     - invoice-ninja/compose.yaml
     - immich/compose.yaml
     - jellyfin/compose.yaml

@@ -1,0 +1,155 @@
+services:
+  postiz:
+    image: ghcr.io/gitroomhq/postiz-app:latest
+    container_name: postiz
+    restart: always
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - postiz_config:/config
+      - postiz_uploads:/uploads
+    # ports:
+    #   - "4007:5000"
+    depends_on:
+      postiz-postgres:
+        condition: service_healthy
+      postiz-redis:
+        condition: service_healthy
+      postiz-temporal:
+        condition: service_started
+    networks:
+      - homelab
+      - postiz-internal
+      - postiz-temporal
+
+  postiz-postgres:
+    image: postgres:17-alpine
+    container_name: postiz-postgres
+    restart: always
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - postiz_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - postiz-internal
+
+  postiz-redis:
+    image: redis:7.2
+    container_name: postiz-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - postiz_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - postiz-internal
+
+  postiz-temporal-elasticsearch:
+    image: elasticsearch:7.17.27
+    container_name: postiz-temporal-elasticsearch
+    restart: always
+    environment:
+      cluster.routing.allocation.disk.threshold_enabled: "true"
+      cluster.routing.allocation.disk.watermark.low: 512mb
+      cluster.routing.allocation.disk.watermark.high: 256mb
+      cluster.routing.allocation.disk.watermark.flood_stage: 128mb
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms256m -Xmx256m
+      xpack.security.enabled: "false"
+    expose:
+      - 9200
+    volumes:
+      - postiz_temporal_elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      - postiz-temporal
+
+  postiz-temporal-postgresql:
+    image: postgres:16
+    container_name: postiz-temporal-postgresql
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_USER: temporal
+    expose:
+      - 5432
+    volumes:
+      - postiz_temporal_postgres:/var/lib/postgresql/data
+    networks:
+      - postiz-temporal
+
+  postiz-temporal:
+    image: temporalio/auto-setup:1.28.1
+    container_name: postiz-temporal
+    restart: always
+    depends_on:
+      - postiz-temporal-postgresql
+      - postiz-temporal-elasticsearch
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: postiz-temporal-postgresql
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+      ENABLE_ES: "true"
+      ES_SEEDS: postiz-temporal-elasticsearch
+      ES_VERSION: v7
+      TEMPORAL_NAMESPACE: default
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+    networks:
+      - postiz-temporal
+
+  postiz-temporal-admin-tools:
+    image: temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1
+    container_name: postiz-temporal-admin-tools
+    restart: unless-stopped
+    environment:
+      TEMPORAL_ADDRESS: postiz-temporal:7233
+      TEMPORAL_CLI_ADDRESS: postiz-temporal:7233
+    stdin_open: true
+    tty: true
+    depends_on:
+      - postiz-temporal
+    networks:
+      - postiz-temporal
+
+  postiz-temporal-ui:
+    image: temporalio/ui:2.34.0
+    container_name: postiz-temporal-ui
+    restart: always
+    environment:
+      TEMPORAL_ADDRESS: postiz-temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:4007
+    # ports:
+    #   - "8080:8080"
+    depends_on:
+      - postiz-temporal
+    networks:
+      - homelab
+      - postiz-temporal
+
+networks:
+  homelab:
+    external: true
+  postiz-internal:
+  postiz-temporal:
+
+volumes:
+  postiz_config:
+  postiz_uploads:
+  postiz_postgres:
+  postiz_redis_data:
+  postiz_temporal_elasticsearch:
+  postiz_temporal_postgres:

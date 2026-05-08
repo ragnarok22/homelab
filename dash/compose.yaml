@@ -3,7 +3,6 @@ services:
     image: mauricenino/dashdot:latest
     container_name: dash
     restart: unless-stopped
-    privileged: true
     environment:
       - DASHDOT_PAGE_TITLE=Dash | HomeLab
       - DASHDOT_SHOW_DASH_VERSION=icon_hover

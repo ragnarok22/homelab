@@ -6,7 +6,7 @@ services:
     user: 1000:1000
     group_add:
       - "44"   # video
-      - "992"  # render
+      - "993"  # renderD128 group in the Docker LXC
     devices:
       - /dev/dri/renderD128:/dev/dri/renderD128
     volumes:

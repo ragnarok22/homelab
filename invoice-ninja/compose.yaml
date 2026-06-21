@@ -21,7 +21,10 @@ services:
     env_file:
       - path: .env
         required: true
+    environment:
+      IS_DOCKER: "true"
     volumes:
+      - ./.env:/var/www/html/.env:rw
       - ./php/php.ini:/usr/local/etc/php/php.ini:ro
       - ./php/php-cli.ini:/usr/local/etc/php/php-cli.ini:ro
       - invoice_ninja_public:/var/www/html/public:rw

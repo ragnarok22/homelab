@@ -8,6 +8,7 @@ services:
     volumes:
       - ./nginx/in-vhost.conf:/etc/nginx/conf.d/in-vhost.conf:ro
       - invoice_ninja_public:/var/www/html/public:ro
+      - invoice_ninja_storage:/var/www/html/storage:ro
     depends_on:
       - invoice-ninja-app
     networks:
